@@ -1,0 +1,4 @@
+-GraphicEngine'a ışıklandırma sistemi eklenmeli.
+-shaderlar ışıklandırma mantığına göre güncellenmeli
+-GameLogic classı oluşturulup oyun mantığı kurulmali.
+-Shader yazilmali, eldeki shader bozuk TBN eklenmeli vs.
