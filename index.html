@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        </style>
+        <title>WebGL2 ENGINE DENEMELERI</title>
+    </head>
+
+    <body>
+        <canvas id="gl-canvas" width="1920" height="1080">
+            Oops ... your browser doesn't support the HTML5 canvas element
+        </canvas>
+    </body>
+
+    <script type="importmap">
+    {
+        "imports":
+        {
+        "cannon": "./lib/cannon.js-master/build/cannon.js"
+        }
+    }
+    </script>
+    <script type="module"> import * as CANNON from "cannon";</script>
+    <script type="text/javascript" src="./js/webgl-utils.js"></script>
+    <script type="text/javascript" src="./js/MV.js"></script>
+    <script type="text/javascript" src="./js/OBJParser.js"></script>
+    <script type="text/javascript" src="./js/sphere.js"></script>
+    <script type="text/javascript" src="./js/GraphicEngine.js"></script>
+    <script type="module" src="./js/App.js"></script>
+</html>
