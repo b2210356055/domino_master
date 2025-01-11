@@ -144,6 +144,226 @@ class Camera{
     }
 }
 
+class Light{
+    static AMBIENT = 0;
+    static POINT = 1;
+    static SPOT = 2;
+
+    #name = null;
+    #type = null;            //AMBIENT | SPOT | POINT
+    #light_ambient   = null; // ambient
+    #light_diffuse   = null; // spot ve point
+    #light_specular  = null; // spot ve point
+    #light_shininess = null; // spot ve point
+    #position = null;        // spot ve point
+    #target   = null;        // spot
+    #cutoff   = null;        // spot
+
+    constructor(type, name){
+        if (type === undefined || name === undefined) {
+            throw new Error("Light constructor(type, name): type and name field can not be left undefined!!!");
+        }
+        if(type<0 || type>2){
+            throw new Error("Light constructor(type, name): type field does not represent a light type!!!\nAvailable types: Light.AMBIENT=0, Light.POINT=1, Light.SPOT=2");    
+        }
+        this.#name = name;
+        this.#type = type;
+
+        if(this.#type === Light.AMBIENT){
+            this.setAmbient();
+        }
+        else{
+            if(this.#type === Light.SPOT){
+                this.setTarget(1.0/3.0, -1.0/3.0, 1.0/3.0)
+                this.setCutoffAngle();
+            }
+            //this.#type === POINT
+            this.setPosition();
+            this.setDiffuse();
+            this.setSpecular();
+            this.setShininess();
+        }
+    }
+
+    // #region Get & Set
+    getName(){
+        return this.#name;
+    }
+
+    getType(){
+        return this.#type;
+    }
+    
+    getAmbient(){
+        return this.#light_ambient;
+    }
+
+    setAmbient(r=0.1, g=0.1, b=0.1){
+        if(this.#type !== Light.AMBIENT) {
+            console.log("Only Ambient type light's can be ambient set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        r = Math.max(0.0, Math.min(1.0, r));
+        g = Math.max(0.0, Math.min(1.0, g));
+        b = Math.max(0.0, Math.min(1.0, b));
+        this.#light_ambient = vec3(r, g, b);
+    }
+
+    getDiffuse(){
+        return this.#light_diffuse;
+    }
+
+    setDiffuse(r=1.0, g=1.0, b=1.0){
+        if(this.#type === Light.AMBIENT){
+            console.log("Only Spot and Point type light's diffuse can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        r = Math.max(0.0, Math.min(1.0, r));
+        g = Math.max(0.0, Math.min(1.0, g));
+        b = Math.max(0.0, Math.min(1.0, b));
+        this.#light_diffuse = vec3(r, g, b);
+    }
+
+    getSpecular(){
+        return this.#light_specular;
+    }
+
+    setSpecular(r=0.5, g=0.5, b=0.5){
+        if(this.#type === Light.AMBIENT){
+            console.log("Only Spot and Point type light's specular can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        r = Math.max(0.0, Math.min(1.0, r));
+        g = Math.max(0.0, Math.min(1.0, g));
+        b = Math.max(0.0, Math.min(1.0, b));
+        this.#light_specular = vec3(r, g, b);
+    }
+
+    getShininess(){
+        return this.#light_shininess;
+    }
+
+    setShininess(Ns=32){
+        if(this.#type === Light.AMBIENT){
+            console.log("Only Spot and Point type light's shininess can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        Ns = Math.max(0.0, Ns);
+        this.#light_shininess = Ns;
+    }
+
+
+    getPosition(){
+        return this.#position;
+    }
+
+    setPosition(x=0, y=0, z=0){
+        if(this.#type === Light.AMBIENT){
+            console.log("Only Spot and Point type light's position can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        this.#position = vec3(x, y, z);
+    }
+
+    getTarget(){
+        return this.#target;
+    }
+
+    setTarget(x=0, y=0, z=0){
+        if(this.#type !== Light.SPOT){
+            console.log("Only Spot type light's target can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        this.#target = vec3(x, y, z);
+    }
+
+    getCutoffAngle(){
+        return this.#cutoff;
+    }
+
+    setCutoffAngle(angleRad = Math.PI/4){
+        if(this.#type !== Light.SPOT){
+            console.log("Only Spot type light's cutoff angle can be set!!!\nlight.#type = ", this.getType());
+            return;
+        }
+        this.#cutoff = angleRad;
+    }
+
+    // #endregion
+
+}
+
+class LightGroup{
+    #max_cap = 5;
+    #group = [];
+
+    addLight(light){
+        if(!(light instanceof Light)){
+            console.error("Given parameter is not an instance of Light Class!!!");
+            return;
+        }
+        if(this.#group.length >= this.#max_cap){
+            console.error("LightGroup capacity is full!!!\nthis.#max_cap = ", this.#max_cap);
+            return;
+        }
+        if(this.getAmbientCount() >= 1 && light.getType()===Light.AMBIENT){
+            console.error("There is already an ambient light in group.\nOnly one ambient type light can affect per object!!!");
+            return;
+        }
+        if(this.#group.includes(light)){
+            console.error("This light is already included in!!!");
+            return;
+        }
+        if(this.getLightByName(light.getName()) !== null){
+            console.error("There is already a light included with the same name:", light.getName());
+            return;
+        }
+        this.#group.push(light);
+    }
+
+    getAmbientCount(){
+        let count = 0;
+        for (let i = 0; i < this.#group.length; i++) {
+            const light = this.#group[i];
+            if(light.getType() === Light.AMBIENT) count++;
+        }
+        return count;
+    }
+
+    getLightByName(name=""){
+        for (let i = 0; i < this.#group.length; i++) {
+            const light = this.#group[i];
+            if(light.getName() === name) return light;
+        }
+        return null;
+    }
+
+    removeLightByName(name=""){
+        for (let i = 0; i < this.#group.length; i++) {
+            const light = this.#group[i];
+            if(light.getName() === name) {
+                this.#group.splice(i, 1);
+                return;
+            }
+        }
+    }
+
+    removeLight(light){
+        if(!(light instanceof Light)){
+            console.error("Given parameter is not an instance of Light Class!!!");
+            return;
+        }
+
+        let index = this.#group.indexOf(light);
+        if(index!==-1){
+            this.#group.splice(index, 1);
+        }
+    }
+    
+    getAllLights(){
+        return this.#group;
+    }
+}
 
 class Mesh {
     name = "default-mesh";
@@ -157,6 +377,7 @@ class Mesh {
     #normals = undefined; //vec3, Float32Array()
     #texture_points = undefined; //vec3, Float32Array()
     #material_facemap = []; // [{face_index:  mat_name:}, ...]
+    light_container;
     VBO_container= {};
 
     //TODO: add setler this#transform_matrix'i guncelliyor ama
@@ -218,9 +439,9 @@ class Mesh {
     setRotation(nx=0, ny=0, nz=0){
         // let result = new Float32Array(this.#transform_matrix);
         let result = new Float32Array([
-            this.sx,0,0,this.x,
-            0,this.sy,0,this.y,
-            0,0,this.sz,this.z,
+            this.sx,0,0,0,
+            0,this.sy,0,0,
+            0,0,this.sz,0,
             0,0,0,1
         ]);
         if(nx !== 0){
@@ -250,6 +471,10 @@ class Mesh {
             ]);
             result = mult_matrix(rotz, result);
         }
+        result[3] = this.x;
+        result[7] = this.y;
+        result[11] = this.z;
+
         this.#transform_matrix = result;
         this.rx=nx;
         this.ry=ny;
@@ -257,6 +482,9 @@ class Mesh {
     };
 
     scale(sx=1, sy=1, sz=1){
+        this.sx=sx;
+        this.sy=sy;
+        this.sz=sz;
         const scale_matrix = [
             this.sx, 0, 0, 0,
             0, this.sy, 0, 0,
@@ -291,9 +519,6 @@ class Mesh {
         result[15] = 1;
 
         this.#transform_matrix = new Float32Array(result);
-        this.sx=sx;
-        this.sy=sy;
-        this.sz=sz;
         return this.#transform_matrix;
     };
 
@@ -385,12 +610,12 @@ class Mesh {
         this.sx = Math.sqrt(c1[0]**2 + c1[1]**2 + c1[2]**2);
         this.sy = Math.sqrt(c2[0]**2 + c2[1]**2 + c2[2]**2);
         this.sz = Math.sqrt(c3[0]**2 + c3[1]**2 + c3[2]**2);
-        c1[0] /= this.sx; c1[1] /= this.sx; c1[2] /= this.sx;
-        c2[0] /= this.sy; c2[1] /= this.sy; c2[2] /= this.sy;
-        c3[0] /= this.sz; c3[1] /= this.sz; c3[2] /= this.sz;
-        this.rz = Math.atan2(c2[0], c1[0]);
+        c1 = c1.map(value => value / this.sx);
+        c2 = c2.map(value => value / this.sy);
+        c3 = c3.map(value => value / this.sz);
         this.ry = -Math.asin(c1[2]);
-        this.rx = Math.atan2(c3[1], c3[2]);
+        this.rz = Math.atan2(c1[1]*Math.cos(this.ry), c1[0]*Math.cos(this.ry));
+        this.rx = Math.atan2(c2[2]*Math.cos(this.ry), c3[2]*Math.cos(this.ry));
         /*
             // Extract yaw (Z-axis rotation)
             const yaw = Math.atan2(R[1][0], R[0][0]);
@@ -401,19 +626,20 @@ class Mesh {
             // Extract roll (X-axis rotation)
             const roll = Math.atan2(R[2][1], R[2][2]);
         */
-    };
+    }
 
     print(){
         let str = "name: " + this.name + "\n#transform_matrix: \n\t" + this.#transform_matrix.slice(0,4) + "\n\t" + this.#transform_matrix.slice(4,8) + "\n\t" + this.#transform_matrix.slice(8,12) + "\n\t" + this.#transform_matrix.slice(12) + "\nxyz: " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() +
         "\nrx/ry/rz: " + this.rx.toString() + ", " + this.ry.toString() + ", " + this.rz.toString() + "\nsx/sy/sz: " + 
         this.sx.toString() + ", " + this.sy.toString() + ", " + this.sz.toString();
         console.log(str, "\n#faces: ", this.#faces, "\n#normals: ", this.#normals, "\n#material_list: ", this.#material_facemap);
-    };
+    }
 
 
     constructor(_name, _shader_name, _faces, _normals, _texture_points, _material_facemap) {
         this.name = _name;
         this.shader_name = _shader_name;
+        this.light_container = new LightGroup();
         this.#transform_matrix = new Float32Array([
             1, 0, 0, 0,
             0, 1, 0, 0,
@@ -461,9 +687,8 @@ class Mesh {
             );
         }
         this.#material_facemap = _material_facemap;
-    };
+    }
 }
-
 
 class Engine {
     #scene = [];
@@ -474,7 +699,6 @@ class Engine {
     camera;
 
     #active_shader_program;
-    #active_transform_matrix;
 
 
     // Constructor
@@ -578,11 +802,6 @@ class Engine {
     getActiveShaderProgram(){
         return this.#active_shader_program;
     }
-
-    getActiveTransformMatrix(){
-        return this.#active_transform_matrix;
-    }
-
     #drawMesh(mesh){
         if(!(mesh instanceof Mesh)){
             console.error("drawMesh(): verilen parametre Mesh degil!!!");
@@ -599,8 +818,6 @@ class Engine {
             else count = materialFaceMap[i+1].face_index - index;
 
             let shader = this.#active_shader_program;
-            //TODO: get transform degiscek ama once transform test edilmeli
-            this.#active_transform_matrix = mesh.getTransform();
 
             // shader.shaderFunction(mesh, _material, index, count);
             // console.log(shader);

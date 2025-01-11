@@ -9,8 +9,8 @@ let delta_x;
 let delta_y;
 
 const engine = new Engine();
-const world = new CANNON.World();
-console.log("Cannon.js World Created:", world);
+// const world = new CANNON.World();
+// console.log("Cannon.js World Created:", world);
 
 window.onload = async function init() {
     //mouse engine.canvasda hareket ettikce
@@ -111,7 +111,7 @@ const render = function(){
         delta_y = p_y - p_y0;
         p_x0 = p_x;
         p_y0 = p_y;
-        console.log(delta_x, delta_y);
+        // console.log(delta_x, delta_y);
         engine.camera.translateCameraViewplane(delta_x*4, delta_y*4, 0)
     }
     else if(rotate_flag){
@@ -139,6 +139,7 @@ async function main() {
 
     //TODO: bu shader cok boktan, normaller duzgun calismiyor
     // bir de light sistemi getirmeliyiz
+    // light sistemi var ama spot light calismiyor.
     const plantShaderFunction = function (mesh, _material, index, count){
         let glProgram = this.getActiveShaderProgram().program;
         let GL = this.gl;
@@ -159,9 +160,7 @@ async function main() {
         GL.vertexAttribPointer( VBOs.textCoordLocation, 2, GL.FLOAT, false, 0, 0 );
         GL.enableVertexAttribArray( VBOs.textCoordLocation );
 
-        //TODO: buraya kopyala yapistir yaptim ayar cekilmeli
-        // aslinda bir sikinti gozukmuyor ama
-        // edit: calisiyor
+
         GL.activeTexture(GL.TEXTURE0);
         GL.bindTexture(GL.TEXTURE_2D, VBOs.texture);
         //buralar bole mi olmali?????
@@ -173,18 +172,62 @@ async function main() {
         GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGB, GL.RGB, GL.UNSIGNED_BYTE, _material.normalMap);
         GL.generateMipmap(GL.TEXTURE_2D);
 
-        //TODO: buralar bozuk duzenle
-        // light zimbirti sayilarini gotten salladik, ona bisey dusunmek lazim
-        GL.uniform4fv(VBOs.ambientLocation,  new Float32Array(mult([..._material.Ka, 1.0], [0.1, 0.1, 0.1, 1.0] )));
-        GL.uniform4fv(VBOs.diffuseLocation,  new Float32Array(mult([..._material.Kd, 1.0], [0.64, 0.64, 0.64, 1.0] )));
-        GL.uniform4fv(VBOs.specularLocation, new Float32Array(mult([..._material.Ks, 1.0], [0.5, 0.5, 0.5, 1.0])));
-        // GL.uniform4fv(VBOs.ambientLocation,  new Float32Array(mult([..._material.Ka, 1.0], lightAmbient )));
-        // GL.uniform4fv(VBOs.diffuseLocation,  new Float32Array(mult([..._material.Kd, 1.0], lightDiffuse )));
-        // GL.uniform4fv(VBOs.specularLocation, new Float32Array(mult([..._material.Ks, 1.0], lightSpecular)));
-        GL.uniform1f(VBOs.shininessLocation, _material.Ns);
-        GL.uniform4fv(VBOs.lightPositionLocation, new Float32Array([14,14,14,1]));
+        //lightlari fora sokup her birinden kopyala yapistir
+        const lc = 4;
+        let lg = mesh.light_container.getAllLights();
+        let ambient = [];
+        let diffuses = [];
+        let speculars = [];
+        let light_positions = [];
+        let target_positions = [];
+        let cutoffs = [];
 
-        GL.uniformMatrix4fv( VBOs.transformLocation, true, this.getActiveTransformMatrix() );
+        for (let i = 0; i < lg.length; i++) {
+            const light = lg[i];
+            const lt = light.getType();
+            if(lt === Light.AMBIENT){
+                ambient.push(...mult([..._material.Ka, 1.0], [...light.getAmbient(), 1.0]));
+            }
+            else if(lt === Light.POINT){
+                diffuses.push(...light.getDiffuse(), 1.0);
+                speculars.push(...light.getSpecular(), 1.0);
+                light_positions.push(...light.getPosition(), 1.0);
+                target_positions.push(0,0,0,1);
+                cutoffs.push(-1);
+            }
+            else if(lt === Light.SPOT){
+                diffuses.push(...mult([..._material.Kd, 1.0], [...light.getDiffuse(), 1.0]));
+                speculars.push(...mult([..._material.Ks, 1.0], [...light.getSpecular(), 1.0]));
+                light_positions.push(...light.getPosition(), 1.0);
+                target_positions.push(...light.getTarget(), 1.0);
+                cutoffs.push(light.getCutoffAngle());
+            }
+        }
+        while(diffuses.length < lc*4) {
+            diffuses.push(0.0);
+        }
+        while(speculars.length < lc*4) {
+            speculars.push(0.0);
+        }
+        while(light_positions.length < lc*4) {
+            light_positions.push(0.0);
+        }
+        while(target_positions.length < lc*4) {
+            target_positions.push(0.0);
+        }
+        while(cutoffs.length < lc) {
+            cutoffs.push(-1.0);
+        }
+
+        GL.uniform4fv(VBOs.ambientLocation,  new Float32Array(ambient));
+        GL.uniform4fv(VBOs.diffuseLocation,  new Float32Array(diffuses));
+        GL.uniform4fv(VBOs.specularLocation, new Float32Array(speculars));
+        GL.uniform1f(VBOs.shininessLocation, _material.Ns);
+        GL.uniform4fv(VBOs.lightPositionLocation, new Float32Array(light_positions));
+        GL.uniform4fv(VBOs.targetPositionLocation, new Float32Array(target_positions));
+        GL.uniform1fv(VBOs.cutOffLocation, new Float32Array(cutoffs));
+
+        GL.uniformMatrix4fv( VBOs.transformLocation, true, mesh.getTransform() );
         GL.uniformMatrix4fv( VBOs.modelViewMatrixLoc, true, this.camera.getModelViewMatrix() );
         GL.uniformMatrix4fv( VBOs.projectionMatrixLoc, true, this.camera.getPerspectiveMatrix() );
 
@@ -194,11 +237,6 @@ async function main() {
         //TODO: buranin ariza cikaracagini dusunmuyorum ama duruma gore,
         // edit: cikarmadi tamamiz
 
-        // GL.deleteBuffer(normal_buffer);
-        // GL.deleteBuffer(vBuffer);
-        // GL.deleteBuffer(texBuffer);
-        // GL.deleteTexture(texture);
-        // GL.deleteTexture(normal_map_image);
 
         GL.disableVertexAttribArray(VBOs.vPositionLocation);
         GL.disableVertexAttribArray(VBOs.normalLocation);
@@ -221,7 +259,12 @@ async function main() {
             modelViewMatrixLoc: GL.getUniformLocation( glProgram, "modelViewMatrix" ),
             projectionMatrixLoc: GL.getUniformLocation( glProgram, "projectionMatrix" ),
             transformLocation: GL.getUniformLocation( glProgram, "transform" ),
+            
+            // lightCountLocation: GL.getUniformLocation(glProgram, "light_count"),
             lightPositionLocation: GL.getUniformLocation( glProgram, "lightPosition" ),
+            targetPositionLocation: GL.getUniformLocation( glProgram, "targetPosition" ),
+            cutOffLocation: GL.getUniformLocation( glProgram, "u_cutoff" ),
+
             shininessLocation: GL.getUniformLocation( glProgram, "shininess" ),
             ambientLocation: GL.getUniformLocation( glProgram, "ambientProduct" ),
             diffuseLocation: GL.getUniformLocation( glProgram, "diffuseProduct" ),
@@ -267,13 +310,27 @@ async function main() {
         GL.bindBuffer(GL.ARRAY_BUFFER, mesh.VBO_container.vBuffer);
         GL.vertexAttribPointer(mesh.VBO_container.positionLocation, 3, GL.FLOAT, false, 0, 0);
         GL.enableVertexAttribArray(mesh.VBO_container.positionLocation);
-        // console.log("Buffer size:", GL.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE));
 
-        GL.uniformMatrix4fv(mesh.VBO_container.transformLocation, true, this.getActiveTransformMatrix());
+        GL.bindBuffer(GL.ARRAY_BUFFER, mesh.VBO_container.nBuffer);
+        GL.vertexAttribPointer(mesh.VBO_container.normalLocation, 3, GL.FLOAT, false, 0, 0);
+        GL.enableVertexAttribArray(mesh.VBO_container.normalLocation);
+
+        GL.uniform4f(mesh.VBO_container.diffuseLocation, 0, 0, 0, 1);
+        GL.uniform3f(mesh.VBO_container.lightPositionLocation, 0, 0, 0);
+        let l;
+        for (let i = 0; i < mesh.light_container.getAllLights().length; i++) {
+            l = mesh.light_container.getAllLights()[i];
+            if(l.getType() === Light.POINT || l.getType() === Light.SPOT){
+                GL.uniform4f(mesh.VBO_container.diffuseLocation, ...l.getDiffuse(), 1.0);
+                GL.uniform3f(mesh.VBO_container.lightPositionLocation, ...l.getPosition());
+                break;
+            }
+        }
+
+        GL.uniformMatrix4fv(mesh.VBO_container.transformLocation, true, mesh.getTransform());
         GL.uniformMatrix4fv(mesh.VBO_container.MVMLocation, true, this.camera.getModelViewMatrix());
         GL.uniformMatrix4fv(mesh.VBO_container.PMLocation, true, this.camera.getPerspectiveMatrix());
         GL.uniform4f(mesh.VBO_container.colorLocation, _material.r, _material.g, _material.b, _material.a);
-
 
         if (_material.wireframe) {
             GL.drawArrays(GL.LINES, index, count);
@@ -281,9 +338,8 @@ async function main() {
             GL.drawArrays(GL.TRIANGLES, index, count);
         }
 
-        GL.disableVertexAttribArray(mesh.VBO_container.vPositionLocation);
-        // GL.disableVertexAttribArray(mesh.VBO_container.normalLocation);
-        // GL.disableVertexAttribArray(mesh.VBO_container.textCoordLocation);
+        GL.disableVertexAttribArray(mesh.VBO_container.positionLocation);
+        GL.disableVertexAttribArray(mesh.VBO_container.normalLocation);
     }.bind(engine);
 
     const defaultShaderFunction_init = function (_faces, _normals, _texture_points, mesh) {
@@ -296,19 +352,34 @@ async function main() {
             MVMLocation: undefined,
             PMLocation: undefined,
             colorLocation: undefined,
-            vBuffer: undefined
+            vBuffer: undefined,
+
+            normalLocation: undefined,
+            nBuffer: undefined,
+            lightPositionLocation: undefined,
+            diffuseLocation: undefined
         };
 
-        VBO.positionLocation = GL.getAttribLocation(glProgram, "vPosition");
+        VBO.positionLocation  = GL.getAttribLocation(glProgram, "vPosition");
         VBO.transformLocation = GL.getUniformLocation(glProgram, "transformMatrix");
-        VBO.MVMLocation = GL.getUniformLocation(glProgram, "modelViewMatrix");
-        VBO.PMLocation = GL.getUniformLocation(glProgram, "projectionMatrix");
-        VBO.colorLocation = GL.getUniformLocation(glProgram, "fColor");
+        VBO.MVMLocation       = GL.getUniformLocation(glProgram, "modelViewMatrix");
+        VBO.PMLocation        = GL.getUniformLocation(glProgram, "projectionMatrix");
+        VBO.colorLocation     = GL.getUniformLocation(glProgram, "fColor");
+
+
+        VBO.normalLocation        = GL.getAttribLocation(glProgram, "vNormal");
+        VBO.lightPositionLocation = GL.getUniformLocation(glProgram, "light_pos");
+        VBO.diffuseLocation       = GL.getUniformLocation(glProgram, "diffuse");
 
         //vertexler vec3
         VBO.vBuffer = GL.createBuffer();
         GL.bindBuffer(GL.ARRAY_BUFFER, VBO.vBuffer);
         GL.bufferData(GL.ARRAY_BUFFER, _faces, GL.STATIC_DRAW);
+
+        //normaller
+        VBO.nBuffer = GL.createBuffer();
+        GL.bindBuffer(GL.ARRAY_BUFFER, VBO.nBuffer);
+        GL.bufferData(GL.ARRAY_BUFFER, _normals, GL.STATIC_DRAW);
 
         Object.assign(mesh.VBO_container, VBO);
     }.bind(engine);
@@ -334,10 +405,9 @@ async function main() {
     const sphere_mat = {
         face_index: 0,
         mat_name: "uranus_mat",
-        // shader_name: "default",
 
         r:1,g:1,b:1,a:1,
-        wireframe:true,
+        wireframe:false,
 
         Ns:20,
         Ka:[1.0, 1.0, 1.0],
@@ -350,30 +420,49 @@ async function main() {
 
     const planet = new Mesh("uranus", "default", sphere_data.faces, sphere_data.normals, sphere_data.uv, [sphere_mat]);
 
-    //TODO: calisiyor ama hatali, oturup dusunmek lazim
-
-    // planet.setTransform(
-    //     [
-    //         1,0,0,2,
-    //         0,0,2,3,
-    //         0,-2,0,4,
-    //         0,0,0,1
-    //     ]
-    // );
-    // planet.print();
-    // // planet.setRotation(1.57,0,0);
-    // // planet.updateTransform();
-    // planet.setTranslate(0,0,1);
-    // planet.setRotation(3.1412,0,0);
-    // planet.print();
-
+    /* calisiyor
+    planet.setTransform(
+        [
+            0.3,0,0,2,
+            0,0,2,3,
+            0,-2,0,4,
+            0,0,0,1
+        ]
+    );
+    */
     engine.addMeshToScene(planet);
 
     const bitki_data = await loadOBJ("./resources/bitki.obj");
     const bitki_mesh = new Mesh("bitki", "deneme-shader1", bitki_data._faces, bitki_data._normals, bitki_data._texture_points, bitki_data._material_face_map);
 
+    let light1 = new Light(Light.AMBIENT, "ambient1");
+    let light2 = new Light(Light.SPOT, "spot1");
+    let light3 = new Light(Light.SPOT, "spot2");
+    light2.setPosition(1, 15, 2);
+    light3.setPosition(1, 15, 1);
+
+    light2.setTarget(0, 0, 0);
+    light3.setTarget(0, 0, 0);
+
+    light2.setCutoffAngle(Math.PI/9);
+    light3.setCutoffAngle(Math.PI/9);
+    
+    light1.setAmbient(0.3, 0.3, 0.3);
+    light2.setDiffuse(0.3, 0.3, 1.3);
+    light3.setDiffuse(0, 1, 0);
+
+    planet.light_container.addLight(light1);
+    planet.light_container.addLight(light2);
+    planet.light_container.addLight(light3);
+
+    /*
+    bitki_mesh.light_container.addLight(light1);
+    bitki_mesh.light_container.addLight(light2);
+    bitki_mesh.light_container.addLight(light3);
+    
     engine.addMeshToScene(bitki_mesh);
     bitki_mesh.addTranslate(0, 13, 0);
+    */
 
     render();
 }
