@@ -202,8 +202,9 @@ async function loadOBJ(file_path) {
             _material_face_map.push(Object.assign({}, material));
         }
     }
-    if(_texture_points.length !== 0){
-        let element1, element2;
+    if(_material_face_map.length !== 0){
+        let element1;
+        let element2 = _material_face_map[0];
         for (let i = 0; i < _material_face_map.length-1; i++) {
             element1 = _material_face_map[i];
             element2 = _material_face_map[i+1];
@@ -213,5 +214,5 @@ async function loadOBJ(file_path) {
     }
     // console.log("_faces", _faces.length, "\n_material_face_map: ", _material_face_map, "\n_material_list: ", _material_list);
 
-    return {_faces, _normals, _texture_points, _material_list, _material_face_map};
+    return {vertices, _faces, _normals, _texture_points, _material_list, _material_face_map};
 }

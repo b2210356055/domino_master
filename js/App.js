@@ -8,9 +8,20 @@ let p_y0 = 0.0;
 let delta_x;
 let delta_y;
 
+let move_fw = false;
+let move_bw = false;
+let move_rw = false;
+let move_lw = false;
+let move_uw = false;
+let move_dw = false;
+let speed = 0.0;
+const speed_max = 0.15;
+const speed_step = 0.015;
+
+
 const engine = new Engine();
-// const world = new CANNON.World();
-// console.log("Cannon.js World Created:", world);
+const world = new CANNON.World();
+const bodyMap = new Map();
 
 window.onload = async function init() {
     //mouse engine.canvasda hareket ettikce
@@ -21,31 +32,71 @@ window.onload = async function init() {
     };
 
 
-    document.addEventListener('keypress', function(event) {
+    document.addEventListener('keydown', function(event) {
         switch (event.key) {
             case 'W':
             case 'w':
-                engine.camera.translateCameraFirstPerson(0, 0, 0.2);
+                move_fw = true;
+                // engine.camera.translateCameraFirstPerson(0, 0, 0.2);
                 break;
             case 'S':
             case 's':
-                engine.camera.translateCameraFirstPerson(0, 0, -0.2);
+                move_bw = true;
+                // engine.camera.translateCameraFirstPerson(0, 0, -0.2);
                 break;
             case 'A':
             case 'a':
-                engine.camera.translateCameraFirstPerson(-0.2, 0, 0);
+                move_lw = true;
+                // engine.camera.translateCameraFirstPerson(-0.2, 0, 0);
                 break;
             case 'D':
             case 'd':
-                engine.camera.translateCameraFirstPerson(0.2, 0, 0);
+                move_rw = true;
+                // engine.camera.translateCameraFirstPerson(0.2, 0, 0);
                 break;
             case 'E':
             case 'e':
-                engine.camera.translateCameraFirstPerson(0, 0.2, 0);
+                move_uw = true;
+                // engine.camera.translateCameraFirstPerson(0, 0.2, 0);
                 break;
             case 'Q':
             case 'q':
-                engine.camera.translateCameraFirstPerson(0,-0.2, 0);
+                move_dw = true;
+                // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
+                break;
+        }
+    });
+    document.addEventListener('keyup', function(event) {
+        switch (event.key) {
+            case 'W':
+            case 'w':
+                move_fw = false;
+                speed = 0.0;
+                break;
+            case 'S':
+            case 's':
+                move_bw = false;
+                speed = 0.0;
+                break;
+            case 'A':
+            case 'a':
+                move_lw = false;
+                speed = 0.0;
+                break;
+            case 'D':
+            case 'd':
+                move_rw = false;
+                speed = 0.0;
+                break;
+            case 'E':
+            case 'e':
+                move_uw = false;
+                speed = 0.0;
+                break;
+            case 'Q':
+            case 'q':
+                move_dw = false;
+                speed = 0.0;
                 break;
         }
     });
@@ -124,17 +175,53 @@ const render = function(){
         let phi = delta_y * Math.PI/2.0;
 
         engine.camera.rotateCamera(theta, phi);
-
     }
+    if(move_fw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(0, 0, speed);
+    }else if(move_bw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(0, 0, -speed);    
+    }
+    if(move_rw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(speed, 0, 0);
+    }else if(move_lw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(-speed, 0, 0);    
+    }
+    if(move_uw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(0,speed, 0);
+    }else if(move_dw){
+        speed = Math.min(speed+speed_step, speed_max);
+        engine.camera.translateCameraFirstPerson(0,-speed, 0);    
+    }
+    
+    /*
+    engine.getMeshFromScene("domino1").addRotation(0, 0.02, 0);
+    engine.getMeshFromScene("domino2").addRotation(0, 0.02, 0);
+    engine.getMeshFromScene("domino3").addRotation(0, -0.02, 0);
+    */
+    // engine.getMeshFromScene("bitki").addRotation(0, 0.02, 0);
 
-    engine.getMeshFromScene("uranus").addRotation(0, 0.02, 0);
-    //engine.getMeshFromScene("bitki").addRotation(0, 0.02, 0);
+    let body1 = bodyMap.get("domino1_body");
+    // let body2 = bodyMap.get("zemin_body");
+
+
+    // engine.getMeshFromScene("zemin_mesh").setTranslate(body2.position.x, body2.position.y, body2.position.z);
+    // engine.getMeshFromScene("zemin_mesh").setRotation(body2.quaternion.x, body2.quaternion.y, body2.quaternion.z);
+
+    engine.getMeshFromScene("domino1").setTranslate(body1.position.x, body1.position.y, body1.position.z);
+    engine.getMeshFromScene("domino1").setRotation(body1.quaternion.x, body1.quaternion.y, body1.quaternion.z);
+
+    world.step(1.0 / 60.0);
     engine.drawScene();
     requestAnimFrame(render);
 }
 
 async function main() {
-    engine.camera.setCameraPosition(0,0,-30);
+    engine.camera.setCameraPosition(0,0,-5);
     engine.camera.setLookAtPosition(0,0,0);
 
     //TODO: bu shader cok boktan, normaller duzgun calismiyor
@@ -400,8 +487,9 @@ async function main() {
         plantShaderFunction_init
     );
     
-    const sphere_data = generateSphere(13, 30, 30);
-
+    // const sphere_data = generateSphere(13, 30, 30);
+    
+    /*
     const sphere_mat = {
         face_index: 0,
         mat_name: "uranus_mat",
@@ -417,52 +505,74 @@ async function main() {
         texture: await loadImage("./resources/textures/sand-dunes1_albedo.png"),
         normalMap: await loadImage("./resources/textures/sand-dunes1_normal-dx.png")
     }
-
-    const planet = new Mesh("uranus", "default", sphere_data.faces, sphere_data.normals, sphere_data.uv, [sphere_mat]);
-
-    /* calisiyor
-    planet.setTransform(
-        [
-            0.3,0,0,2,
-            0,0,2,3,
-            0,-2,0,4,
-            0,0,0,1
-        ]
-    );
     */
-    engine.addMeshToScene(planet);
 
-    const bitki_data = await loadOBJ("./resources/bitki.obj");
-    const bitki_mesh = new Mesh("bitki", "deneme-shader1", bitki_data._faces, bitki_data._normals, bitki_data._texture_points, bitki_data._material_face_map);
+    // const planet = new Mesh("uranus", "default", sphere_data.faces, sphere_data.normals, sphere_data.uv, [sphere_mat]);
+
+    // Create a world (gravity is set in the options)
+    world.gravity.set(0, -9.82, 0); // Set gravity (in meters per second squared), e.g., Earth gravity
+    world.broadphase = new CANNON.NaiveBroadphase();  // Default broadphase for collision detection
+    world.solver = new CANNON.GSSolver;  // Default solver
+    world.allowSleep = true;  // Allow objects to go to sleep when not moving
+
+
+    const zemin_data = await loadOBJ("./resources/zemin.obj");
+    // const convex_shape_points = [];
+    // for (let i = 0; i < zemin_data.vertices.length; i += 3) {
+    //     convex_shape_points.push(new CANNON.Vec3(zemin_data.vertices[i], zemin_data.vertices[i + 1], zemin_data.vertices[i + 2]));
+    // }
+    // // Create ConvexPolyhedron shape using the points
+    // const convexShape = new CANNON.ConvexPolyhedron(convex_shape_points);
+    //
+    // // Create the physics body
+    // const convexBody = new CANNON.Body({
+    //     mass: 1,
+    //     position: new CANNON.Vec3(0, 0, 0),
+    // });
+    // // Add the convex shape to the body
+    // convexBody.addShape(convexShape);
+    // bodyMap.set("zemin_body", convexBody);
+
+    const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
+
+
+
+
+    const domino1_data = await loadOBJ("./resources/domino1.obj");
+    const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
+
+    // Create a box shape (length, width, height)
+    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map((value)=>{value/=2;})));
+
+    // Create a body with mass and position
+    const domino1_body = new CANNON.Body({
+        mass: 1,  // Mass of the box in kg
+        position: new CANNON.Vec3(0, 0, 0)  // Starting position in the world
+    });
+    // Add the shape to the body
+    domino1_body.addShape(boxShape);
+    bodyMap.set("domino1_body", domino1_body);
+
+
+
+
+
+
+
+
+    // Add the body to the world
+    world.addBody(domino1_body);
+    // world.addBody(convexBody); //zemin
+
+
+    engine.addMeshToScene(domino1_mesh);
+    engine.addMeshToScene(zemin_mesh);
 
     let light1 = new Light(Light.AMBIENT, "ambient1");
-    let light2 = new Light(Light.SPOT, "spot1");
-    let light3 = new Light(Light.SPOT, "spot2");
-    light2.setPosition(1, 15, 2);
-    light3.setPosition(1, 15, 1);
+    light1.setAmbient(0.6, 0, 0);
 
-    light2.setTarget(0, 0, 0);
-    light3.setTarget(0, 0, 0);
-
-    light2.setCutoffAngle(Math.PI/9);
-    light3.setCutoffAngle(Math.PI/9);
-    
-    light1.setAmbient(0.3, 0.3, 0.3);
-    light2.setDiffuse(0.3, 0.3, 1.3);
-    light3.setDiffuse(0, 1, 0);
-
-    planet.light_container.addLight(light1);
-    planet.light_container.addLight(light2);
-    planet.light_container.addLight(light3);
-
-    /*
-    bitki_mesh.light_container.addLight(light1);
-    bitki_mesh.light_container.addLight(light2);
-    bitki_mesh.light_container.addLight(light3);
-    
-    engine.addMeshToScene(bitki_mesh);
-    bitki_mesh.addTranslate(0, 13, 0);
-    */
+    domino1_mesh.light_container.addLight(light1);
+    zemin_mesh.light_container.addLight(light1);
 
     render();
 }

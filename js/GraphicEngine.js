@@ -372,6 +372,9 @@ class Mesh {
     x=0; y=0; z=0;
     rx=0; ry=0; rz=0;
     sx=1; sy=1; sz=1;
+    #width=0;
+    #height=0;
+    #length=0;
 
     #faces = undefined; //vec3, Float32Array()
     #normals = undefined; //vec3, Float32Array()
@@ -402,38 +405,46 @@ class Mesh {
 
     addRotation(nx=0, ny=0, nz=0){
         // let result = new Float32Array(this.#transform_matrix);
-        let result = this.#transform_matrix;
-        if(nx !== 0){
+        this.rx+=nx;
+        this.ry+=ny;
+        this.rz+=nz;
+        let result = new Float32Array([
+            this.sx, 0, 0, 0,
+            0, this.sy, 0, 0,
+            0, 0, this.sz, 0,
+            0, 0, 0, 1
+        ]);
+        if(this.rx !== 0){
             let rotx = new Float32Array([
                 1, 0, 0, 0,
-                0, Math.cos(nx), -Math.sin(nx), 0,
-                0, Math.sin(nx), Math.cos(nx), 0,
+                0, Math.cos(this.rx), -Math.sin(this.rx), 0,
+                0, Math.sin(this.rx), Math.cos(this.rx), 0,
                 0, 0, 0, 1
             ]);
             result = mult_matrix(rotx, result);
         }
-        if(ny !== 0){
+        if(this.ry !== 0){
             let roty = new Float32Array([
-                Math.cos(ny), 0, Math.sin(ny), 0,
+                Math.cos(this.ry), 0, Math.sin(this.ry), 0,
                 0, 1, 0, 0,
-                -Math.sin(ny), 0, Math.cos(ny), 0,
+                -Math.sin(this.ry), 0, Math.cos(this.ry), 0,
                 0, 0, 0, 1
             ]);
             result = mult_matrix(roty, result);
         }
-        if(nz !== 0){
+        if(this.rz !== 0){
             let rotz = new Float32Array([
-                Math.cos(nz), -Math.sin(nz), 0, 0,
-                Math.sin(nz), Math.cos(nz), 0, 0,
+                Math.cos(this.rz), -Math.sin(this.rz), 0, 0,
+                Math.sin(this.rz), Math.cos(this.rz), 0, 0,
                 0, 0, 1, 0,
                 0, 0, 0, 1
             ]);
             result = mult_matrix(rotz, result);
         }
+        result[3] = this.x;
+        result[7] = this.y;
+        result[11] = this.z;
         this.#transform_matrix = result;
-        this.rx+=nx;
-        this.ry+=ny;
-        this.rz+=nz;
     };
 
     setRotation(nx=0, ny=0, nz=0){
@@ -628,6 +639,10 @@ class Mesh {
         */
     }
 
+    getDimensions(){
+        return [this.#width, this.#height, this.#length];
+    }
+
     print(){
         let str = "name: " + this.name + "\n#transform_matrix: \n\t" + this.#transform_matrix.slice(0,4) + "\n\t" + this.#transform_matrix.slice(4,8) + "\n\t" + this.#transform_matrix.slice(8,12) + "\n\t" + this.#transform_matrix.slice(12) + "\nxyz: " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() +
         "\nrx/ry/rz: " + this.rx.toString() + ", " + this.ry.toString() + ", " + this.rz.toString() + "\nsx/sy/sz: " + 
@@ -653,6 +668,22 @@ class Mesh {
                 return null;
             }
             this.#faces = new Float32Array(_faces);
+
+            let minx=0, maxx=0;
+            let miny=0, maxy=0;
+            let minz=0, maxz=0;
+            for (let i = 0; i < this.#faces.length; i+=3) {
+                this.#faces[i];
+                if(this.#faces[i] < minx) minx = this.#faces[i];
+                else if(this.#faces[i] > maxx) maxx = this.#faces[i];
+                if(this.#faces[i+1] < miny) miny = this.#faces[i+1];
+                else if(this.#faces[i+1] > maxy) maxy = this.#faces[i+1];
+                if(this.#faces[i+2] < minz) minz = this.#faces[i+2];
+                else if(this.#faces[i+2] > maxz) maxz = this.#faces[i+2];
+            }
+            this.#width = maxx-minx;
+            this.#height = maxy-miny;
+            this.#length = maxz-minz;
         }
         if(_normals !== undefined){
             if(!Array.isArray(_normals)){
