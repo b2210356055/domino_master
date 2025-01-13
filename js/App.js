@@ -516,24 +516,53 @@ async function main() {
     world.solver = new CANNON.GSSolver;  // Default solver
     world.allowSleep = true;  // Allow objects to go to sleep when not moving
 
+    // Load the ground mesh data
+    const zemin_data = await loadOBJ("./resources/domino2.obj");
 
-    const zemin_data = await loadOBJ("./resources/zemin.obj");
-    
-    const convex_shape_points = [];// correct
+    // Convert vertices to CANNON.Vec3 points
+    const convex_shape_points = [];
     for (let i = 0; i < zemin_data.vertices.length; i += 3) {
-        convex_shape_points.push(new CANNON.Vec3(zemin_data.vertices[i], zemin_data.vertices[i + 1], zemin_data.vertices[i + 2]));
+        convex_shape_points.push(
+            new CANNON.Vec3(
+                zemin_data.vertices[i],
+                zemin_data.vertices[i + 1],
+                zemin_data.vertices[i + 2]
+            )
+        );
     }
-    // // Create ConvexPolyhedron shape using the points
-    const convexShape = new CANNON.ConvexPolyhedron(convex_shape_points, zemin_data._faces_by_index,zemin_data._normals);
-    //
-    // // Create the physics body
-    // const convexBody = new CANNON.Body({
-    //     mass: 1,
-    //     position: new CANNON.Vec3(0, 0, 0),
-    // });
-    // // Add the convex shape to the body
-    // convexBody.addShape(convexShape);
-    // bodyMap.set("zemin_body", convexBody);
+
+    // Create ConvexPolyhedron shape using the points
+    const convexShape = new CANNON.ConvexPolyhedron(
+        convex_shape_points,
+        zemin_data._faces_by_index
+    );
+
+    // Create the ground physics body
+    const groundBody = new CANNON.Body({
+        mass: 0,  // Mass of 0 makes it static
+        position: new CANNON.Vec3(0, 0, 0),
+        material: new CANNON.Material({
+            friction: 0.5,
+            restitution: 0.3
+        }),
+        type: CANNON.Body.STATIC,  // Explicitly set as static
+        collisionFilterGroup: 1,   // Collision group for ground
+        collisionFilterMask: -1    // Collide with all groups
+    });
+
+    // Add the convex shape to the body
+    groundBody.addShape(convexShape);
+
+    // Prevent rotation and movement
+    groundBody.fixedRotation = true;
+    groundBody.updateMassProperties();
+
+    // Add to body map
+    bodyMap.set("zemin_body", groundBody);
+
+    // Add to physics world 
+    world.addBody(groundBody);
+
 
     const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
 
@@ -557,7 +586,9 @@ async function main() {
     const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
 
     // Create a box shape (length, width, height)
-    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map((value)=>{value/=2;})));
+    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
+
+    console.log(boxShape)
 
     // Create a body with mass and position
     const domino1_body = new CANNON.Body({
@@ -573,22 +604,31 @@ async function main() {
     world.addBody(domino1_body);
     // world.addBody(convexBody); //zemin
 
-    // Periodically add the body to the world
+    let dominoCounter = 0;
+
     setInterval(() => {
         // Create a box shape (length, width, height)
-        const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map((value)=>{value/=2;})));
+    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
 
-        // Create a body with mass and position
-        const domino1_body = new CANNON.Body({
-            mass: 1,  // Mass of the box in kg
-            position: new CANNON.Vec3(0, 10, 0)  // Starting position in the world
-        });
-        // Add the shape to the body
-        domino1_body.addShape(boxShape);
-        bodyMap.set("domino1_body", domino1_body);
+    console.log(boxShape)
 
-        world.addBody(domino1_body);
-    }, 1000); // Add the body every 1000ms (1 second)
+    // Create a body with mass and position
+    const domino1_body = new CANNON.Body({
+        mass: 1,  // Mass of the box in kg
+        position: new CANNON.Vec3(0, 10, 0)  // Starting position in the world
+    });
+    // Add the shape to the body
+    domino1_body.addShape(boxShape);
+    bodyMap.set("domino1_body", domino1_body);
+
+
+    // Add the body to the world
+    world.addBody(domino1_body);
+    // world.addBody(convexBody); //zemin
+
+        
+        dominoCounter++;
+    }, 1000);
 
     engine.addMeshToScene(domino1_mesh);
     engine.addMeshToScene(zemin_mesh);
