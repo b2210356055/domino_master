@@ -516,56 +516,41 @@ async function main() {
     world.solver = new CANNON.GSSolver;  // Default solver
     world.allowSleep = true;  // Allow objects to go to sleep when not moving
 
-    // Load the ground mesh data
-    const zemin_data = await loadOBJ("./resources/zemin2.obj");
+    // Load the ground mesh data for VISUAL representation only
+const zemin_data = await loadOBJ("./resources/ground.obj");
+const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
 
-    // Convert vertices to CANNON.Vec3 points
-    const convex_shape_points = [];
-    for (let i = 0; i < zemin_data.vertices.length; i += 3) {
-        convex_shape_points.push(
-            new CANNON.Vec3(
-                zemin_data.vertices[i],
-                zemin_data.vertices[i + 1],
-                zemin_data.vertices[i + 2]
-            )
-        );
-    }
+// Create PHYSICS ground as a simple plane (no need for OBJ data)
+const groundShape = new CANNON.Plane();
+const groundBody = new CANNON.Body({
+    mass: 0,  // Mass of 0 makes it static
+    position: new CANNON.Vec3(0, 0, 0),
+    material: new CANNON.Material({
+        friction: 0.5,
+        restitution: 0.3
+    }),
+    type: CANNON.Body.STATIC
+});
 
-    // Create ConvexPolyhedron shape using the points
-    const convexShape = new CANNON.ConvexPolyhedron(
-        convex_shape_points,
-        zemin_data._faces_by_index
-    );
+// Add the plane shape to the body
+groundBody.addShape(groundShape);
 
-    // Create the ground physics body
-    const groundBody = new CANNON.Body({
-        mass: 0,  // Mass of 0 makes it static
-        position: new CANNON.Vec3(0, 0, 0),
-        material: new CANNON.Material({
-            friction: 0.5,
-            restitution: 0.3
-        }),
-        type: CANNON.Body.STATIC,  // Explicitly set as static
-        collisionFilterGroup: 1,   // Collision group for ground
-        collisionFilterMask: -1    // Collide with all groups
-    });
+// Rotate the ground plane to be horizontal
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
 
-    // Add the convex shape to the body
-    groundBody.addShape(convexShape);
+// Prevent rotation and movement
+groundBody.fixedRotation = true;
+groundBody.updateMassProperties();
 
-    // Prevent rotation and movement
-    groundBody.fixedRotation = true;
-    groundBody.updateMassProperties();
+// Set collision filters
+groundBody.collisionFilterGroup = 1;
+groundBody.collisionFilterMask = -1;
 
-    // Add to body map
-    bodyMap.set("zemin_body", groundBody);
+// Add to body map
+bodyMap.set("zemin_body", groundBody);
 
-    // Add to physics world 
-    world.addBody(groundBody);
-
-
-    const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
-
+// Add to physics world 
+world.addBody(groundBody);
 
     // After creating the zemin_mesh, add a spot light
     let spotLight = new Light(Light.SPOT, "spot1");
@@ -582,7 +567,7 @@ async function main() {
     // Add the spot light to the mesh
     zemin_mesh.light_container.addLight(spotLight);
 
-    const domino1_data = await loadOBJ("./resources/domino1.obj");
+    const domino1_data = await loadOBJ("./resources/domino.obj");
     const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
 
     // Create a box shape (length, width, height)
@@ -593,11 +578,32 @@ async function main() {
     // Create a body with mass and position
     const domino1_body = new CANNON.Body({
         mass: 1,  // Mass of the box in kg
-        position: new CANNON.Vec3(0, 10, 0)  // Starting position in the world
+        position: new CANNON.Vec3(0, 10, 0), // Starting position in the world
+        material: new CANNON.Material({
+            friction: 0.5,
+            restitution: 0.3 // Bounce factor
+        })
     });
-    // Add the shape to the body
-    domino1_body.addShape(boxShape);
-    bodyMap.set("domino1_body", domino1_body);
+
+    groundBody.collisionFilterGroup = 1;
+    groundBody.collisionFilterMask = -1;
+
+    domino1_body.collisionFilterGroup = 1;
+    domino1_body.collisionFilterMask = -1;
+
+
+    // Create contact material between ground and box
+    const contactMaterial = new CANNON.ContactMaterial(
+        groundBody.material,
+        domino1_body.material,
+        {
+            friction: 0.5,
+            restitution: 0.3,
+            contactEquationStiffness: 1e7,
+            contactEquationRelaxation: 3
+        }
+    );
+    world.addContactMaterial(contactMaterial);
 
 
     // Add the body to the world
@@ -606,6 +612,19 @@ async function main() {
 
     let dominoCounter = 0;
 
+    engine.addMeshToScene(domino1_mesh);
+    engine.addMeshToScene(zemin_mesh);
+
+    let light1 = new Light(Light.AMBIENT, "ambient1");
+    light1.setAmbient(0.6, 0, 0);
+
+    domino1_mesh.light_container.addLight(light1);
+    zemin_mesh.light_container.addLight(light1);
+
+        // Add the shape to the body
+    domino1_body.addShape(boxShape);
+    bodyMap.set("domino1_body", domino1_body);
+    
     setInterval(() => {
         // Create a box shape (length, width, height)
     const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
@@ -619,25 +638,22 @@ async function main() {
     });
     // Add the shape to the body
     domino1_body.addShape(boxShape);
-    bodyMap.set("domino1_body", domino1_body);
+    
 
+    groundBody.collisionFilterGroup = 1;
+    groundBody.collisionFilterMask = -1;
+
+    domino1_body.collisionFilterGroup = 1;
+    domino1_body.collisionFilterMask = -1;
+
+
+    bodyMap.set("domino1_body", domino1_body);
 
     // Add the body to the world
     world.addBody(domino1_body);
     // world.addBody(convexBody); //zemin
-
-        
         dominoCounter++;
-    }, 1000);
-
-    engine.addMeshToScene(domino1_mesh);
-    engine.addMeshToScene(zemin_mesh);
-
-    let light1 = new Light(Light.AMBIENT, "ambient1");
-    light1.setAmbient(0.6, 0, 0);
-
-    domino1_mesh.light_container.addLight(light1);
-    zemin_mesh.light_container.addLight(light1);
+    }, 5000);
 
     render();
 }
