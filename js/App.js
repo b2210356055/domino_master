@@ -517,7 +517,7 @@ async function main() {
     world.allowSleep = true;  // Allow objects to go to sleep when not moving
 
     // Load the ground mesh data
-    const zemin_data = await loadOBJ("./resources/domino1.obj");
+    const zemin_data = await loadOBJ("./resources/zemin2.obj");
 
     // Convert vertices to CANNON.Vec3 points
     const convex_shape_points = [];
