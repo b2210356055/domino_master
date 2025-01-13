@@ -149,15 +149,17 @@ async function loadOBJ(file_path) {
 
             const vertexIndices = parts.slice(1).map(p => parseInt(p.split('/')[0]) - 1);
             
-            if (vertexIndices.length === 3) {
-                // Triangle face
-                _faces_by_index.push(vertexIndices); // Add face indices for ConvexPolyhedron
-            } else if (vertexIndices.length === 4) {
-                // Quad face, split into two triangles
-                _faces_by_index.push([vertexIndices[0], vertexIndices[1], vertexIndices[2]]);
-                _faces_by_index.push([vertexIndices[0], vertexIndices[2], vertexIndices[3]]);
+            // Store face indices for physics
+            if (vertexIndices.length >= 3) {
+                // Add triangulated faces
+                if (vertexIndices.length === 3) {
+                    _faces_by_index.push([...vertexIndices]); // Make sure to create a new array
+                } else if (vertexIndices.length === 4) {
+                    // Split quad into two triangles
+                    _faces_by_index.push([vertexIndices[0], vertexIndices[1], vertexIndices[2]]);
+                    _faces_by_index.push([vertexIndices[0], vertexIndices[2], vertexIndices[3]]);
+                }
             }
-
             const v1 = parseInt(parts[1]) - 1;
             const v2 = parseInt(parts[2]) - 1;
             const v3 = parseInt(parts[3]) - 1;
@@ -225,7 +227,16 @@ async function loadOBJ(file_path) {
         }
         element2.texture_points = new Float32Array(_texture_points.slice(element2.face_index*2));
     }
-    // console.log("_faces", _faces.length, "\n_material_face_map: ", _material_face_map, "\n_material_list: ", _material_list);
+    console.log("_faces", _faces.length, "\n_material_face_map: ",
+         _material_face_map.length, "\n_material_list: ", _material_list.length
+         ,"\n_faces_by_index", _faces_by_index.length
+         ,"\nvertices", vertices.length
+        );
+    console.log("_faces", _faces, "\n_material_face_map: ",
+            _material_face_map, "\n_material_list: ", _material_list
+            ,"\n_faces_by_index", _faces_by_index
+            ,"\nvertices", vertices
+           );
 
     return {vertices, _faces, _normals, _texture_points, _material_list, _material_face_map, _faces_by_index};
 }

@@ -519,12 +519,12 @@ async function main() {
 
     const zemin_data = await loadOBJ("./resources/zemin.obj");
     
-    // const convex_shape_points = [];
-    // for (let i = 0; i < zemin_data.vertices.length; i += 3) {
-    //     convex_shape_points.push(new CANNON.Vec3(zemin_data.vertices[i], zemin_data.vertices[i + 1], zemin_data.vertices[i + 2]));
-    // }
+    const convex_shape_points = [];// correct
+    for (let i = 0; i < zemin_data.vertices.length; i += 3) {
+        convex_shape_points.push(new CANNON.Vec3(zemin_data.vertices[i], zemin_data.vertices[i + 1], zemin_data.vertices[i + 2]));
+    }
     // // Create ConvexPolyhedron shape using the points
-    // const convexShape = new CANNON.ConvexPolyhedron(convex_shape_points);
+    const convexShape = new CANNON.ConvexPolyhedron(convex_shape_points, zemin_data._faces_by_index,zemin_data._normals);
     //
     // // Create the physics body
     // const convexBody = new CANNON.Body({
@@ -553,7 +553,6 @@ async function main() {
     // Add the spot light to the mesh
     zemin_mesh.light_container.addLight(spotLight);
 
-
     const domino1_data = await loadOBJ("./resources/domino1.obj");
     const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
 
@@ -568,12 +567,6 @@ async function main() {
     // Add the shape to the body
     domino1_body.addShape(boxShape);
     bodyMap.set("domino1_body", domino1_body);
-
-
-
-
-
-
 
 
     // Add the body to the world
