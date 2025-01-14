@@ -227,7 +227,7 @@ async function loadOBJ(file_path) {
         }
         element2.texture_points = new Float32Array(_texture_points.slice(element2.face_index*2));
     }
-    console.log("_faces", _faces.length, "\n_material_face_map: ",
+    /*console.log("_faces", _faces.length, "\n_material_face_map: ",
          _material_face_map.length, "\n_material_list: ", _material_list.length
          ,"\n_faces_by_index", _faces_by_index.length
          ,"\nvertices", vertices.length
@@ -236,7 +236,7 @@ async function loadOBJ(file_path) {
             _material_face_map, "\n_material_list: ", _material_list
             ,"\n_faces_by_index", _faces_by_index
             ,"\nvertices", vertices
-           );
+           );*/
 
     return {vertices, _faces, _normals, _texture_points, _material_list, _material_face_map, _faces_by_index};
 }

@@ -8,6 +8,9 @@ let p_y0 = 0.0;
 let delta_x;
 let delta_y;
 
+let createDomino = false;
+let dominoCounter = 4;
+
 let move_fw = false;
 let move_bw = false;
 let move_rw = false;
@@ -44,8 +47,9 @@ function quaternionToEuler(q) {
     return { x: roll, y: pitch, z: yaw };
 }
 
-async function createDomino(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, 
+async function dominoCreator(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, 
                             mass = 1 ) {
+        console.log(dominoName, path, shader, initPoint, mass)
 
         /////////////////// DOMINO INIT ////////////////////
         let domino_data = await loadOBJ(path);
@@ -129,6 +133,11 @@ window.onload = async function init() {
                 move_dw = true;
                 // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
                 break;
+            case 'Z':
+            case 'z':
+                createDomino = true;
+                // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
+                break;
         }
     });
     document.addEventListener('keyup', function(event) {
@@ -163,6 +172,12 @@ window.onload = async function init() {
                 move_dw = false;
                 speed = 0.0;
                 break;
+            case 'Z':
+            case 'z':
+                createDomino = false;
+                // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
+                break;
+        
         }
     });
 
@@ -217,10 +232,12 @@ window.onload = async function init() {
         engine.gl.viewport( 0, 0, engine.canvas.width, engine.canvas.height );
         engine.camera.updateAspect( engine.canvas.width / engine.canvas.height);
     };
+
+    
 }
 
 
-const render = function(){
+const render = async function(){
     //mouse hareketlerine bak
     if(drag_flag){
         delta_x = p_x - p_x0;
@@ -262,6 +279,21 @@ const render = function(){
         speed = Math.min(speed+speed_step, speed_max);
         engine.camera.translateCameraFirstPerson(0,-speed, 0);    
     }
+    if(createDomino){
+        let camPos = engine.camera.getCameraPosition()
+        console.log(camPos)
+        console.log(camPos.x)
+        let domino = await dominoCreator( dominoCounter.toString(), "./resources/domino1.obj", "deneme-shader1" ,{x:camPos[0],y:1,z:camPos[2]+ 10}, 1);
+        world.addBody(domino.body);
+        let lightGeneric = new Light(Light.AMBIENT, "ambientGeneric");
+        lightGeneric.setAmbient(0.6, 0, 0);
+        domino.mesh.light_container.addLight(lightGeneric);
+        engine.addMeshToScene(domino.mesh);
+        dominoCounter = dominoCounter + 1
+        createDomino = false
+    }
+
+    
     
     /*
     engine.getMeshFromScene("domino1").addRotation(0, 0.02, 0);
@@ -281,6 +313,9 @@ const render = function(){
     // Then use it like this:
     const euler = quaternionToEuler(body1.quaternion);
     engine.getMeshFromScene("domino1").setRotation(euler.x, euler.y, euler.z);*/
+
+    console.log(bodyMap)
+    console.log(meshMap)
 
     // Iterate through all bodies in the bodyMap
     for (let [key, body] of bodyMap) {
@@ -306,6 +341,7 @@ const render = function(){
         }
 
     }
+
 
 
     world.step(1.0 / 60.0);
@@ -657,9 +693,9 @@ async function main() {
 
     ////////////////// DOMINO func INIT ////////////////
 
-    await createDomino( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 1);
-    await createDomino( "2", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
-    await createDomino( "3", "./resources/domino1.obj", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
+    await dominoCreator( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 1);
+    await dominoCreator( "2", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
+    await dominoCreator( "3", "./resources/domino1.obj", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
 
     console.log(bodyMap)
     console.log(meshMap)
