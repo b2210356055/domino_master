@@ -23,6 +23,26 @@ const engine = new Engine();
 const world = new CANNON.World();
 const bodyMap = new Map();
 
+// Convert quaternion to Euler angles
+function quaternionToEuler(q) {
+    // Roll (x-axis rotation)
+    const sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+    const cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+    const roll = Math.atan2(sinr_cosp, cosr_cosp);
+
+    // Pitch (y-axis rotation)
+    const sinp = 2 * (q.w * q.y - q.z * q.x);
+    const pitch = Math.abs(sinp) >= 1 ? 
+        Math.copySign(Math.PI / 2, sinp) : Math.asin(sinp);
+
+    // Yaw (z-axis rotation)
+    const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+    const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+    const yaw = Math.atan2(siny_cosp, cosy_cosp);
+
+    return { x: roll, y: pitch, z: yaw };
+}
+
 world.broadphase = new CANNON.NaiveBroadphase();
 world.solver.iterations = 10; // Increase solver iterations for better stability
 world.allowSleep = false; // Keep objects active for better collision detection
@@ -217,8 +237,12 @@ const render = function(){
     // engine.getMeshFromScene("zemin_mesh").setRotation(body2.quaternion.x, body2.quaternion.y, body2.quaternion.z);
 
     engine.getMeshFromScene("domino1").setTranslate(body1.position.x, body1.position.y, body1.position.z);
-    engine.getMeshFromScene("domino1").setRotation(body1.quaternion.x, body1.quaternion.y, body1.quaternion.z);
+    // Then use it like this:
+    const euler = quaternionToEuler(body1.quaternion);
+    engine.getMeshFromScene("domino1").setRotation(euler.x, euler.y, euler.z);
+    //engine.getMeshFromScene("domino1").setRotation(body1.quaternion.x, body1.quaternion.y, body1.quaternion.z);
 
+    console.log(body1.quaternion.x)
     if(body1.position.y == 0){
         console.warn("hooooooo", body1.position)
     }
@@ -525,31 +549,32 @@ async function main() {
     world.allowSleep = true;  // Allow objects to go to sleep when not moving
 
     // Load the ground mesh data for VISUAL representation only
-const zemin_data = await loadOBJ("./resources/ground.obj");
-const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
+    const zemin_data = await loadOBJ("./resources/ground.obj");
+    const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
 
-// Create PHYSICS ground as a simple plane (no need for OBJ data)
-const groundShape = new CANNON.Plane();
-const groundBody = new CANNON.Body({
-    mass: 0,  // Mass of 0 makes it static
-    position: new CANNON.Vec3(0, 0, 0),
-    material: new CANNON.Material({
-        friction: 0.00,
-        restitution: 0.00
-    }),
-    type: CANNON.Body.STATIC
-});
+    
+    // Create PHYSICS ground as a simple plane (no need for OBJ data)
+    const groundShape = new CANNON.Plane();
+    const groundBody = new CANNON.Body({
+        mass: 0,  // Mass of 0 makes it static
+        position: new CANNON.Vec3(0, 0, 0),
+        material: new CANNON.Material({
+            friction: 0.2,
+            restitution: 0.40
+        }),
+        type: CANNON.Body.STATIC
+    });
 
-// Add the plane shape to the body
-groundBody.addShape(groundShape);
+    // Add the plane shape to the body
+    groundBody.addShape(groundShape);
 
-// Rotate the ground plane to be horizontal
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+    // Rotate the ground plane to be horizontal
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
 
-// Add to body map
-bodyMap.set("zemin_body", groundBody);
-// Add to physics world 
-world.addBody(groundBody);
+    // Add to body map
+    bodyMap.set("zemin_body", groundBody);
+    // Add to physics world 
+    world.addBody(groundBody);
 
     // After creating the zemin_mesh, add a spot light
     let spotLight = new Light(Light.SPOT, "spot1");
