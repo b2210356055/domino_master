@@ -108,14 +108,14 @@ class Camera{
         // optional: store the current length (distance) so we can preserve how far in front the lookat is
         const distance = length(forward);
         forward = normalize(forward);
-        console.log(1)
+        // console.log(1)
     
         // 2) Compute a right and up vector
         //     - up = (0, 1, 0) in world space 
         //       or your current camera’s up if you want more advanced rolling.
         let right = cross(this.#up, forward);
         right = normalize(right);
-        console.log(2)
+        // console.log(2)
     
         // 3) Rotate forward by yaw (theta) around the world up OR the camera’s up 
         //    - Yaw affects turning left/right.
@@ -131,12 +131,12 @@ class Camera{
            scale(sinTheta, right)
         );
         forwardAfterYaw = normalize(forwardAfterYaw);
-        console.log(3)
+        // console.log(3)
     
         // 4) Recompute right now that forward changed
         right = cross(this.#up, forwardAfterYaw);
         right = normalize(right);
-        console.log(4)
+        // console.log(4)
     
         // 5) Rotate forwardAfterYaw by pitch (phi) around the right axis
         //    - Pitch affects looking up/down.
@@ -154,13 +154,13 @@ class Camera{
            scale(sinPhi, upComp)
         );
         forwardFinal = normalize(forwardFinal);
-        console.log(5)
+        // console.log(5)
         // 6) Multiply forwardFinal by distance to maintain the same lookat distance
         forwardFinal = scale(distance, forwardFinal);
-        console.log(6)
+        // console.log(6)
         // 7) Update the camera’s lookAt to be camera position + rotated forward
         this.#lookat_position = add(this.#camera_position, forwardFinal);
-        console.log(7)
+        // console.log(7)
     }
     
 
@@ -804,6 +804,8 @@ class Engine {
 
         this.gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
         this.gl.enable(this.gl.DEPTH_TEST);
+        // this.gl.enable(this.gl.BLEND);
+        // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
         this.camera = new Camera();
         this.camera.updateAspect( this.canvas.width/this.canvas.height);

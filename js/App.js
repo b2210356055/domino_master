@@ -12,6 +12,10 @@ let showHelp = false; // #updated: Added help state variable
 
 let createDomino = false;
 let dominoCounter = 4;
+let static_domino_data;
+let general_ambient = new Light(Light.AMBIENT, "general_ambient_light1");
+general_ambient.setAmbient(0.7, 0.7, 0.7);
+let shadow_domino;
 
 let move_fw = false;
 let move_bw = false;
@@ -19,6 +23,8 @@ let move_rw = false;
 let move_lw = false;
 let move_uw = false;
 let move_dw = false;
+let r_pressed = false;
+let t_pressed = false;
 let speed = 0.0;
 const speed_max = 0.15;
 const speed_step = 0.015;
@@ -49,42 +55,79 @@ function quaternionToEuler(q) {
     return { x: roll, y: pitch, z: yaw };
 }
 
-async function dominoCreator(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, 
-                            mass = 1 ) {
-        //console.log(dominoName, path, shader, initPoint, mass)
+async function dominoCreator(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, mass = 1 ) {
+    //console.log(dominoName, path, shader, initPoint, mass)
 
-        /////////////////// DOMINO INIT ////////////////////
-        let domino_data = await loadOBJ(path);
-        let domino_mesh = new Mesh(dominoName, shader,
-                            domino_data._faces,
-                            domino_data._normals,
-                            domino_data._texture_points,
-                            domino_data._material_face_map);
-    
-        // Create a box shape (length, width, height)
-        let dims = domino_mesh.getDimensions();
+    /////////////////// DOMINO INIT ////////////////////
+    let domino_data = static_domino_data;
+    let domino_mesh = new Mesh(dominoName, shader,
+                        domino_data._faces,
+                        domino_data._normals,
+                        domino_data._texture_points,
+                        domino_data._material_face_map);
 
-        let boxShape = new CANNON.Box(new CANNON.Vec3(
+    // Create a box shape (length, width, height)
+    let dims = domino_mesh.getDimensions();
+
+    let boxShape = new CANNON.Box(new CANNON.Vec3(
         dims[0]/2, dims[1]/2, dims[2]/2
-        ));
-    
-        // Create a body with mass and position
-        let domino_body = new CANNON.Body({
-            mass: mass,  // Mass of the box in kg
-            position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
-            material: new CANNON.Material({
-                friction: 0.5,
-                restitution: 0.3 // Bounce factor
-            })
-        });
-    
-        // Add the shape to the body
-        domino_body.addShape(boxShape);
-    
-        bodyMap.set(dominoName +"_body", domino_body);
-        meshMap.set(dominoName , domino_mesh);
+    ));
 
-        return {"mesh": domino_mesh,"body": domino_body}
+    // Create a body with mass and position
+    let domino_body = new CANNON.Body({
+        mass: mass,  // Mass of the box in kg
+        position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
+        material: new CANNON.Material({
+            friction: 0.5,
+            restitution: 0.3 // Bounce factor
+        })
+    });
+
+    // Add the shape to the body
+    domino_body.addShape(boxShape);
+
+    bodyMap.set(dominoName +"_body", domino_body);
+    meshMap.set(dominoName , domino_mesh);
+
+    return {"mesh": domino_mesh,"body": domino_body}
+
+}
+
+function dominoCreator2(dominoName = "1", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, mass = 1 ) {
+    //console.log(dominoName, path, shader, initPoint, mass)
+
+    /////////////////// DOMINO INIT ////////////////////
+    let domino_data = static_domino_data;
+    let domino_mesh = new Mesh(dominoName, shader,
+                        domino_data._faces,
+                        domino_data._normals,
+                        domino_data._texture_points,
+                        domino_data._material_face_map);
+
+    // Create a box shape (length, width, height)
+    let dims = domino_mesh.getDimensions();
+
+    let boxShape = new CANNON.Box(new CANNON.Vec3(
+        dims[0]/2, dims[1]/2, dims[2]/2
+    ));
+
+    // Create a body with mass and position
+    let domino_body = new CANNON.Body({
+        mass: mass,  // Mass of the box in kg
+        position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
+        material: new CANNON.Material({
+            friction: 0.5,
+            restitution: 0.3 // Bounce factor
+        })
+    });
+
+    // Add the shape to the body
+    domino_body.addShape(boxShape);
+
+    bodyMap.set(dominoName +"_body", domino_body);
+    meshMap.set(dominoName , domino_mesh);
+
+    return {"mesh": domino_mesh,"body": domino_body}
 
 }
 
@@ -136,6 +179,17 @@ window.onload = async function init() {
                 move_dw = true;
                 // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
                 break;
+
+            case 'r':
+            case 'R':
+                r_pressed = true;
+                break;
+
+            case 't':
+            case 'T':
+                t_pressed = true;
+                break;
+
             case 'Z':
             case 'z':
                 createDomino = true;
@@ -180,6 +234,17 @@ window.onload = async function init() {
                 move_dw = false;
                 speed = 0.0;
                 break;
+
+            case 'r':
+            case 'R':
+                r_pressed = false;
+                break;
+
+            case 't':
+            case 'T':
+                t_pressed = false;
+                break;
+
             case 'Z':
             case 'z':
                 createDomino = false;
@@ -262,7 +327,7 @@ const render = async function(){
         delta_y = p_y - p_y0;
         p_x0 = p_x;
         p_y0 = p_y;
-        console.log(delta_x, delta_y);
+        // console.log(delta_x, delta_y);
         let theta = delta_x * Math.PI/4.0;;
         let phi = delta_y * Math.PI/4.0;
 
@@ -289,25 +354,60 @@ const render = async function(){
         speed = Math.min(speed+speed_step, speed_max);
         engine.camera.translateCameraFirstPerson(0,-speed, 0);    
     }
-    if(createDomino){
-        engine.camera.translateCameraViewplane(0, 0, 0)
-        engine.camera.translateCameraFirstPerson(0,0, 0);    
-        let lookatPos = engine.camera.getCameraPosition();
-   
-        console.log(lookatPos)
-        console.log("pos ", engine.camera.getCameraPosition())
-        console.log("look ", engine.camera.getLookAtPosition())
-        let domino = await dominoCreator( dominoCounter.toString(), "./resources/domino1.obj", "deneme-shader1" ,{x:lookatPos[0],y:1,z:lookatPos[2]+ 10}, 1);
-        world.addBody(domino.body);
-        let lightGeneric = new Light(Light.AMBIENT, "ambientGeneric");
-        lightGeneric.setAmbient(0.6, 0, 0);
-        domino.mesh.light_container.addLight(lightGeneric);
-        engine.addMeshToScene(domino.mesh);
-        dominoCounter = dominoCounter + 1
-        createDomino = false
+    if(r_pressed){
+        shadow_domino.addRotation(0, 0.05, 0);
+    }else if(t_pressed){
+        shadow_domino.addRotation(0, -0.05, 0);
     }
 
+    function intersectWithPlane(ray_pos, ray_direction) {
+        if (ray_direction[1] === 0) {
+            return null;
+        }
+        
+        let t = -ray_pos[1] / ray_direction[1];
     
+        
+        let intersection = [
+            ray_pos[0] + t * ray_direction[0],
+            0,
+            ray_pos[2] + t * ray_direction[2]
+        ];
+    
+        return intersection;
+    }
+
+    if(createDomino){
+        let eye = engine.camera.getCameraPosition();
+        let at = engine.camera.getLookAtPosition();
+        
+        let intersection = intersectWithPlane(eye, subtract(at, eye));
+
+        let domino = await dominoCreator(
+            "domino"+dominoCounter.toString(),
+            "./resources/domino1.obj",
+            "deneme-shader1",
+            {x:intersection[0],y:intersection[1]+1.2,z:intersection[2]},
+            1);
+
+        // domino.body.quaternion.set(0, shadow_domino.ry,0, 1);
+        const rotation = new CANNON.Quaternion();
+        rotation.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), shadow_domino.ry); // Rotate around the Y-axis
+        domino.body.quaternion = domino.body.quaternion.mult(rotation);
+
+        engine.addMeshToScene(domino.mesh);
+        domino.mesh.light_container.addLight(general_ambient);
+        dominoCounter = dominoCounter + 1;
+        world.addBody(domino.body);
+        createDomino = false;
+    }
+
+    let eye = engine.camera.getCameraPosition();
+    let at = engine.camera.getLookAtPosition();
+    let intersection = intersectWithPlane(eye, subtract(at, eye));
+    if(intersection !== null) {
+        shadow_domino.setTranslate(intersection[0], intersection[1]+1.0, intersection[2]);
+    }
     
     /*
     engine.getMeshFromScene("domino1").addRotation(0, 0.02, 0);
@@ -355,7 +455,6 @@ const render = async function(){
         }
 
     }
-
 
 
     world.step(1.0 / 60.0);
@@ -564,7 +663,7 @@ async function main() {
 
         if (_material.wireframe) {
             //GL.drawArrays(GL.LINES, index, count);
-            GL.drawArrays(GL.TRIANGLES, index, count);// DELETE LATER
+            GL.drawArrays(GL.LINES, index, count);// DELETE LATER
         } else {
             GL.drawArrays(GL.TRIANGLES, index, count);
         }
@@ -707,9 +806,20 @@ async function main() {
 
     ////////////////// DOMINO func INIT ////////////////
 
-    await dominoCreator( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 1);
-    await dominoCreator( "2", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
-    await dominoCreator( "3", "./resources/domino1.obj", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
+    static_domino_data = await loadOBJ("./resources/domino2.obj");
+    shadow_domino = new Mesh(
+        "shadow_domino_mesh",
+        "default",
+        static_domino_data._faces,
+        static_domino_data._normals,
+        static_domino_data._texture_points,
+        [{face_index:0, mat_name:"default", r:0, g:1, b:0, a:0.5, wireframe:false}]
+    );
+    engine.addMeshToScene(shadow_domino);
+
+    dominoCreator2( "1", "deneme-shader1" ,{x:0,y:5, z:0}, 1);
+    dominoCreator2( "2", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
+    dominoCreator2( "3", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
 
     /*console.log(bodyMap)
     console.log(meshMap)*/
@@ -719,11 +829,9 @@ async function main() {
         world.addBody(body);
     }
 
-    let light1 = new Light(Light.AMBIENT, "ambient1");
-    light1.setAmbient(0.6, 0, 0);
 
     for (let [key, mesh] of meshMap) {
-        mesh.light_container.addLight(light1);
+        mesh.light_container.addLight(general_ambient);
         engine.addMeshToScene(mesh);
     }
 
