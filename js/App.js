@@ -8,6 +8,8 @@ let p_y0 = 0.0;
 let delta_x;
 let delta_y;
 
+let showHelp = false; // #updated: Added help state variable
+
 let createDomino = false;
 let dominoCounter = 4;
 
@@ -93,6 +95,7 @@ world.solver.iterations = 10; // Increase solver iterations for better stability
 world.allowSleep = false; // Keep objects active for better collision detection
 
 window.onload = async function init() {
+    
     //mouse engine.canvasda hareket ettikce
     engine.canvas.onmousemove = function(event){
         const rect = engine.canvas.getBoundingClientRect();
@@ -138,7 +141,12 @@ window.onload = async function init() {
                 createDomino = true;
                 // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
                 break;
-        }
+            case 'H': // #updated: Added help key handler
+            case 'h':
+                showHelp = !showHelp;
+                helpOverlay.style.display = showHelp ? 'block' : 'none';
+                break;
+    }
     });
     document.addEventListener('keyup', function(event) {
         switch (event.key) {
@@ -176,6 +184,9 @@ window.onload = async function init() {
             case 'z':
                 createDomino = false;
                 // engine.camera.translateCameraFirstPerson(0,-0.2, 0);
+                break;
+            case 'H': // #updated: Added help key handler
+            case 'h':
                 break;
         
         }
@@ -279,7 +290,10 @@ const render = async function(){
         engine.camera.translateCameraFirstPerson(0,-speed, 0);    
     }
     if(createDomino){
-        let lookatPos = engine.camera.getLookAtPosition();
+        engine.camera.translateCameraViewplane(0, 0, 0)
+        engine.camera.translateCameraFirstPerson(0,0, 0);    
+        let lookatPos = engine.camera.getCameraPosition();
+   
         console.log(lookatPos)
         console.log("pos ", engine.camera.getCameraPosition())
         console.log("look ", engine.camera.getLookAtPosition())
@@ -351,7 +365,7 @@ const render = async function(){
 
 async function main() {
     engine.camera.setCameraPosition(0,1,-25);
-    engine.camera.setLookAtPosition(0,0,0);
+    engine.camera.setLookAtPosition(0,1,0);
 
     //TODO: bu shader cok boktan, normaller duzgun calismiyor
     // bir de light sistemi getirmeliyiz
