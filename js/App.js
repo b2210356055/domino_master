@@ -22,6 +22,7 @@ const speed_step = 0.015;
 const engine = new Engine();
 const world = new CANNON.World();
 const bodyMap = new Map();
+const meshMap = new Map();
 
 // Convert quaternion to Euler angles
 function quaternionToEuler(q) {
@@ -42,6 +43,46 @@ function quaternionToEuler(q) {
 
     return { x: roll, y: pitch, z: yaw };
 }
+
+async function createDomino(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, 
+                            mass = 1 ) {
+
+        /////////////////// DOMINO INIT ////////////////////
+        let domino_data = await loadOBJ(path);
+        let domino_mesh = new Mesh(dominoName, shader,
+                            domino_data._faces,
+                            domino_data._normals,
+                            domino_data._texture_points,
+                            domino_data._material_face_map);
+    
+        // Create a box shape (length, width, height)
+        let dims = domino_mesh.getDimensions();
+
+        let boxShape = new CANNON.Box(new CANNON.Vec3(
+        dims[0]/2, dims[1]/2, dims[2]/2
+        ));
+    
+        // Create a body with mass and position
+        let domino_body = new CANNON.Body({
+            mass: mass,  // Mass of the box in kg
+            position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
+            material: new CANNON.Material({
+                friction: 0.5,
+                restitution: 0.3 // Bounce factor
+            })
+        });
+    
+        // Add the shape to the body
+        domino_body.addShape(boxShape);
+    
+        bodyMap.set(dominoName +"_body", domino_body);
+        meshMap.set(dominoName , domino_body);
+
+        return {"mesh": domino_mesh,"body": domino_body}
+
+}
+
+
 
 world.broadphase = new CANNON.NaiveBroadphase();
 world.solver.iterations = 10; // Increase solver iterations for better stability
@@ -245,8 +286,7 @@ const render = function(){
     for (let [key, body] of bodyMap) {
         // Get the mesh name by removing "_body" from the key
         const meshName = key.replace("_body", "");
-        console.log(meshName)
-        
+
         // Update position
         engine.getMeshFromScene(meshName).setTranslate(
             body.position.x,
@@ -669,19 +709,36 @@ async function main() {
 
     bodyMap.set("domino2_body", domino2_body);
 
+
+    const domino = await createDomino( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 
+        1);
+
+    console.log(bodyMap)
+    console.log(meshMap)
+
+
+
     // Add the body to the world
     world.addBody(domino2_body);
+    world.addBody(domino.body);
+
+
 
     let light1 = new Light(Light.AMBIENT, "ambient1");
     light1.setAmbient(0.6, 0, 0);
 
     domino1_mesh.light_container.addLight(light1);
     domino2_mesh.light_container.addLight(light1);
+    domino.mesh.light_container.addLight(light1)
     zemin_mesh.light_container.addLight(light1);
 
     engine.addMeshToScene(domino1_mesh);
+    engine.addMeshToScene(domino.mesh);
+    
     engine.addMeshToScene(domino2_mesh);
     engine.addMeshToScene(zemin_mesh);
+
+
 
 
 
