@@ -49,7 +49,7 @@ function quaternionToEuler(q) {
 
 async function dominoCreator(dominoName = "1", path = "./resources/domino1.obj", shader = "deneme-shader1" , initPoint = {x:0,y:10,z:0}, 
                             mass = 1 ) {
-        console.log(dominoName, path, shader, initPoint, mass)
+        //console.log(dominoName, path, shader, initPoint, mass)
 
         /////////////////// DOMINO INIT ////////////////////
         let domino_data = await loadOBJ(path);
@@ -280,10 +280,9 @@ const render = async function(){
         engine.camera.translateCameraFirstPerson(0,-speed, 0);    
     }
     if(createDomino){
-        let camPos = engine.camera.getCameraPosition()
-        console.log(camPos)
-        console.log(camPos.x)
-        let domino = await dominoCreator( dominoCounter.toString(), "./resources/domino1.obj", "deneme-shader1" ,{x:camPos[0],y:1,z:camPos[2]+ 10}, 1);
+        let lookatPos = engine.camera.getLookAtPosition();
+        console.log(lookatPos)
+        let domino = await dominoCreator( dominoCounter.toString(), "./resources/domino1.obj", "deneme-shader1" ,{x:lookatPos[0],y:1,z:lookatPos[2]+ 10}, 1);
         world.addBody(domino.body);
         let lightGeneric = new Light(Light.AMBIENT, "ambientGeneric");
         lightGeneric.setAmbient(0.6, 0, 0);
@@ -314,8 +313,8 @@ const render = async function(){
     const euler = quaternionToEuler(body1.quaternion);
     engine.getMeshFromScene("domino1").setRotation(euler.x, euler.y, euler.z);*/
 
-    console.log(bodyMap)
-    console.log(meshMap)
+    /*console.log(bodyMap)
+    console.log(meshMap)*/
 
     // Iterate through all bodies in the bodyMap
     for (let [key, body] of bodyMap) {
@@ -697,8 +696,8 @@ async function main() {
     await dominoCreator( "2", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
     await dominoCreator( "3", "./resources/domino1.obj", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
 
-    console.log(bodyMap)
-    console.log(meshMap)
+    /*console.log(bodyMap)
+    console.log(meshMap)*/
 
     // Add the body to the world
     for (let [key, body] of bodyMap) {
