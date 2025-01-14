@@ -138,12 +138,12 @@ class Camera{
         right = normalize(right);
         console.log(4)
     
-        // 5) Rotate forwardAfterYaw by pitch (phi) around the right” axis
+        // 5) Rotate forwardAfterYaw by pitch (phi) around the right axis
         //    - Pitch affects looking up/down.
         let cosPhi = Math.cos(phi);
         let sinPhi = Math.sin(phi);
     
-        // Decompose forwardAfterYaw into horizontal part” and vertical part”.
+        // Decompose forwardAfterYaw into horizontal part and vertical part.
         // Or simply rotate around the right vector.
         // forward'' = forwardAfterYaw*cos(phi) + (upComponent)*sin(phi)
         // where upComponent is cross(forwardAfterYaw, right). 
