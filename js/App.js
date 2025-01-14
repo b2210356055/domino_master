@@ -76,7 +76,7 @@ async function createDomino(dominoName = "1", path = "./resources/domino1.obj", 
         domino_body.addShape(boxShape);
     
         bodyMap.set(dominoName +"_body", domino_body);
-        meshMap.set(dominoName , domino_body);
+        meshMap.set(dominoName , domino_mesh);
 
         return {"mesh": domino_mesh,"body": domino_body}
 
@@ -633,7 +633,7 @@ async function main() {
     groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
 
     // Add to body map
-    bodyMap.set("zemin_body", groundBody);
+    //bodyMap.set("zemin_body", groundBody);
     // Add to physics world 
     world.addBody(groundBody);
 
@@ -652,95 +652,30 @@ async function main() {
     // Add the spot light to the mesh
     zemin_mesh.light_container.addLight(spotLight);
 
-    /////////////////// DOMINO INIT ////////////////////
-    let domino1_data = await loadOBJ("./resources/domino1.obj");
-    let domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
+    bodyMap.set("zemin" +"_body", groundBody);
+    meshMap.set("zemin" , zemin_mesh);
 
-    // Create a box shape (length, width, height)
-    let dims = domino1_mesh.getDimensions();
-    console.log("d ", dims)
-    // dims = [width, height, depth]
-    let boxShape = new CANNON.Box(new CANNON.Vec3(
-    dims[0]/2, dims[1]/2, dims[2]/2
-    ));
+    ////////////////// DOMINO func INIT ////////////////
 
-    // Create a body with mass and position
-    let domino1_body = new CANNON.Body({
-        mass: 1,  // Mass of the box in kg
-        position: new CANNON.Vec3(0, 10, 0), // Starting position in the world
-        material: new CANNON.Material({
-            friction: 0.5,
-            restitution: 0.3 // Bounce factor
-        })
-    });
-
-    // Add the shape to the body
-    domino1_body.addShape(boxShape);
-
-    bodyMap.set("domino1_body", domino1_body);
-
-    // Add the body to the world
-    world.addBody(domino1_body);
-
-    /////////////////// DOMINO INIT ////////////////////
-    let domino2_data = await loadOBJ("./resources/domino2.obj");
-    let domino2_mesh = new Mesh("domino2", "deneme-shader1", domino2_data._faces, domino2_data._normals, domino2_data._texture_points, domino2_data._material_face_map);
-
-    // Create a box shape (length, width, height)
-    dims = domino2_mesh.getDimensions();
-    console.log("d ", dims)
-    // dims = [width, height, depth]
-    boxShape = new CANNON.Box(new CANNON.Vec3(
-    dims[0]/2, dims[1]/2, dims[2]/2
-    ));
-
-    // Create a body with mass and position
-    let domino2_body = new CANNON.Body({
-        mass: 1,  // Mass of the box in kg
-        position: new CANNON.Vec3(2, 10, 2), // Starting position in the world
-        material: new CANNON.Material({
-            friction: 0.5,
-            restitution: 0.3 // Bounce factor
-        })
-    });
-
-    // Add the shape to the body
-    domino2_body.addShape(boxShape);
-
-    bodyMap.set("domino2_body", domino2_body);
-
-
-    const domino = await createDomino( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 
-        1);
+    await createDomino( "1", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:5,z:0}, 1);
+    await createDomino( "2", "./resources/domino1.obj", "deneme-shader1" ,{x:0,y:10,z:0}, 1);
+    await createDomino( "3", "./resources/domino1.obj", "deneme-shader1" ,{x:2,y:10,z:2}, 1);
 
     console.log(bodyMap)
     console.log(meshMap)
 
-
-
     // Add the body to the world
-    world.addBody(domino2_body);
-    world.addBody(domino.body);
-
-
+    for (let [key, body] of bodyMap) {
+        world.addBody(body);
+    }
 
     let light1 = new Light(Light.AMBIENT, "ambient1");
     light1.setAmbient(0.6, 0, 0);
 
-    domino1_mesh.light_container.addLight(light1);
-    domino2_mesh.light_container.addLight(light1);
-    domino.mesh.light_container.addLight(light1)
-    zemin_mesh.light_container.addLight(light1);
-
-    engine.addMeshToScene(domino1_mesh);
-    engine.addMeshToScene(domino.mesh);
-    
-    engine.addMeshToScene(domino2_mesh);
-    engine.addMeshToScene(zemin_mesh);
-
-
-
-
+    for (let [key, mesh] of meshMap) {
+        mesh.light_container.addLight(light1);
+        engine.addMeshToScene(mesh);
+    }
 
     render();
 }
