@@ -229,7 +229,7 @@ const render = function(){
     */
     // engine.getMeshFromScene("bitki").addRotation(0, 0.02, 0);
 
-    let body1 = bodyMap.get("domino1_body");
+    /*let body1 = bodyMap.get("domino1_body");
     let body2 = bodyMap.get("zemin_body");
 
 
@@ -239,13 +239,34 @@ const render = function(){
     engine.getMeshFromScene("domino1").setTranslate(body1.position.x, body1.position.y, body1.position.z);
     // Then use it like this:
     const euler = quaternionToEuler(body1.quaternion);
-    engine.getMeshFromScene("domino1").setRotation(euler.x, euler.y, euler.z);
-    //engine.getMeshFromScene("domino1").setRotation(body1.quaternion.x, body1.quaternion.y, body1.quaternion.z);
+    engine.getMeshFromScene("domino1").setRotation(euler.x, euler.y, euler.z);*/
 
-    console.log(body1.quaternion.x)
-    if(body1.position.y == 0){
-        console.warn("hooooooo", body1.position)
+    // Iterate through all bodies in the bodyMap
+    for (let [key, body] of bodyMap) {
+        // Get the mesh name by removing "_body" from the key
+        const meshName = key.replace("_body", "");
+        console.log(meshName)
+        
+        // Update position
+        engine.getMeshFromScene(meshName).setTranslate(
+            body.position.x,
+            body.position.y,
+            body.position.z
+        );
+
+        if(meshName != "zemin"){
+
+        // Convert quaternion to euler and update rotation
+        const euler = quaternionToEuler(body.quaternion);
+        engine.getMeshFromScene(meshName).setRotation(
+            euler.x,
+            euler.y,
+            euler.z
+        );
+        }
+
     }
+
 
     world.step(1.0 / 60.0);
     engine.drawScene();
@@ -550,7 +571,7 @@ async function main() {
 
     // Load the ground mesh data for VISUAL representation only
     const zemin_data = await loadOBJ("./resources/ground.obj");
-    const zemin_mesh = new Mesh("zemin_mesh", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
+    const zemin_mesh = new Mesh("zemin", "default", zemin_data._faces, zemin_data._normals, zemin_data._texture_points, zemin_data._material_face_map);
 
     /////////////////// GROUND INIT ////////////////////
     // Create PHYSICS ground as a simple plane (no need for OBJ data)
@@ -592,19 +613,19 @@ async function main() {
     zemin_mesh.light_container.addLight(spotLight);
 
     /////////////////// DOMINO INIT ////////////////////
-    const domino1_data = await loadOBJ("./resources/domino1.obj");
-    const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
+    let domino1_data = await loadOBJ("./resources/domino1.obj");
+    let domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
 
     // Create a box shape (length, width, height)
-    const dims = domino1_mesh.getDimensions();
+    let dims = domino1_mesh.getDimensions();
     console.log("d ", dims)
     // dims = [width, height, depth]
-    const boxShape = new CANNON.Box(new CANNON.Vec3(
+    let boxShape = new CANNON.Box(new CANNON.Vec3(
     dims[0]/2, dims[1]/2, dims[2]/2
     ));
 
     // Create a body with mass and position
-    const domino1_body = new CANNON.Body({
+    let domino1_body = new CANNON.Body({
         mass: 1,  // Mass of the box in kg
         position: new CANNON.Vec3(0, 10, 0), // Starting position in the world
         material: new CANNON.Material({
@@ -613,48 +634,56 @@ async function main() {
         })
     });
 
+    // Add the shape to the body
+    domino1_body.addShape(boxShape);
+
+    bodyMap.set("domino1_body", domino1_body);
+
     // Add the body to the world
     world.addBody(domino1_body);
 
+    /////////////////// DOMINO INIT ////////////////////
+    let domino2_data = await loadOBJ("./resources/domino2.obj");
+    let domino2_mesh = new Mesh("domino2", "deneme-shader1", domino2_data._faces, domino2_data._normals, domino2_data._texture_points, domino2_data._material_face_map);
+
+    // Create a box shape (length, width, height)
+    dims = domino2_mesh.getDimensions();
+    console.log("d ", dims)
+    // dims = [width, height, depth]
+    boxShape = new CANNON.Box(new CANNON.Vec3(
+    dims[0]/2, dims[1]/2, dims[2]/2
+    ));
+
+    // Create a body with mass and position
+    let domino2_body = new CANNON.Body({
+        mass: 1,  // Mass of the box in kg
+        position: new CANNON.Vec3(2, 10, 2), // Starting position in the world
+        material: new CANNON.Material({
+            friction: 0.5,
+            restitution: 0.3 // Bounce factor
+        })
+    });
 
     // Add the shape to the body
-    domino1_body.addShape(boxShape);
-    bodyMap.set("domino1_body", domino1_body);
+    domino2_body.addShape(boxShape);
 
+    bodyMap.set("domino2_body", domino2_body);
+
+    // Add the body to the world
+    world.addBody(domino2_body);
 
     let light1 = new Light(Light.AMBIENT, "ambient1");
     light1.setAmbient(0.6, 0, 0);
 
     domino1_mesh.light_container.addLight(light1);
+    domino2_mesh.light_container.addLight(light1);
     zemin_mesh.light_container.addLight(light1);
 
     engine.addMeshToScene(domino1_mesh);
+    engine.addMeshToScene(domino2_mesh);
     engine.addMeshToScene(zemin_mesh);
 
-    let dominoCounter = 0;
-    /*setInterval(() => {
-        // Create a box shape (length, width, height)
-    //const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
 
-    const boxShape = new CANNON.convexPolyhedron(domino1_data.vertices,domino1_data._faces_by_index)
-
-    console.log(boxShape)
-
-    // Create a body with mass and position
-    const domino1_body = new CANNON.Body({
-        mass: 1,  // Mass of the box in kg
-        position: new CANNON.Vec3(0, 10, 0)  // Starting position in the world
-    });
-    // Add the shape to the body
-    domino1_body.addShape(boxShape);
-    
-    bodyMap.set("domino1_body", domino1_body);
-
-    // Add the body to the world
-    world.addBody(domino1_body);
-    // world.addBody(convexBody); //zemin
-        dominoCounter++;
-    }, 5000);*/
 
     render();
 }

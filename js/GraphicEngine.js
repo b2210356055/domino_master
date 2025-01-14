@@ -385,6 +385,7 @@ class Mesh {
 
     //TODO: add setler this#transform_matrix'i guncelliyor ama
     // rotasyon hatali, bakmak lazim
+    /*rotation fixed in app.js*/
     addTranslate(dx=0, dy=0, dz=0){
         this.#transform_matrix[3] +=dx;
         this.#transform_matrix[7] +=dy;
