@@ -23,6 +23,10 @@ const engine = new Engine();
 const world = new CANNON.World();
 const bodyMap = new Map();
 
+world.broadphase = new CANNON.NaiveBroadphase();
+world.solver.iterations = 10; // Increase solver iterations for better stability
+world.allowSleep = false; // Keep objects active for better collision detection
+
 window.onload = async function init() {
     //mouse engine.canvasda hareket ettikce
     engine.canvas.onmousemove = function(event){
@@ -206,7 +210,7 @@ const render = function(){
     // engine.getMeshFromScene("bitki").addRotation(0, 0.02, 0);
 
     let body1 = bodyMap.get("domino1_body");
-    // let body2 = bodyMap.get("zemin_body");
+    let body2 = bodyMap.get("zemin_body");
 
 
     // engine.getMeshFromScene("zemin_mesh").setTranslate(body2.position.x, body2.position.y, body2.position.z);
@@ -215,13 +219,17 @@ const render = function(){
     engine.getMeshFromScene("domino1").setTranslate(body1.position.x, body1.position.y, body1.position.z);
     engine.getMeshFromScene("domino1").setRotation(body1.quaternion.x, body1.quaternion.y, body1.quaternion.z);
 
+    if(body1.position.y == 0){
+        console.warn("hooooooo", body1.position)
+    }
+
     world.step(1.0 / 60.0);
     engine.drawScene();
     requestAnimFrame(render);
 }
 
 async function main() {
-    engine.camera.setCameraPosition(0,0,-5);
+    engine.camera.setCameraPosition(0,-1,-20);
     engine.camera.setLookAtPosition(0,0,0);
 
     //TODO: bu shader cok boktan, normaller duzgun calismiyor
@@ -421,7 +429,7 @@ async function main() {
 
         if (_material.wireframe) {
             //GL.drawArrays(GL.LINES, index, count);
-            GL.drawArrays(GL.TRIANGLES, index, count);
+            GL.drawArrays(GL.TRIANGLES, index, count);// DELETE LATER
         } else {
             GL.drawArrays(GL.TRIANGLES, index, count);
         }
@@ -526,8 +534,8 @@ const groundBody = new CANNON.Body({
     mass: 0,  // Mass of 0 makes it static
     position: new CANNON.Vec3(0, 0, 0),
     material: new CANNON.Material({
-        friction: 0.5,
-        restitution: 0.3
+        friction: 0.00,
+        restitution: 0.00
     }),
     type: CANNON.Body.STATIC
 });
@@ -536,19 +544,10 @@ const groundBody = new CANNON.Body({
 groundBody.addShape(groundShape);
 
 // Rotate the ground plane to be horizontal
-groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-
-// Prevent rotation and movement
-groundBody.fixedRotation = true;
-groundBody.updateMassProperties();
-
-// Set collision filters
-groundBody.collisionFilterGroup = 1;
-groundBody.collisionFilterMask = -1;
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
 
 // Add to body map
 bodyMap.set("zemin_body", groundBody);
-
 // Add to physics world 
 world.addBody(groundBody);
 
@@ -567,11 +566,16 @@ world.addBody(groundBody);
     // Add the spot light to the mesh
     zemin_mesh.light_container.addLight(spotLight);
 
-    const domino1_data = await loadOBJ("./resources/domino.obj");
+    const domino1_data = await loadOBJ("./resources/domino1.obj");
     const domino1_mesh = new Mesh("domino1", "deneme-shader1", domino1_data._faces, domino1_data._normals, domino1_data._texture_points, domino1_data._material_face_map);
 
     // Create a box shape (length, width, height)
-    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
+    const dims = domino1_mesh.getDimensions();
+    console.log("d ", dims)
+    // dims = [width, height, depth]
+    const boxShape = new CANNON.Box(new CANNON.Vec3(
+    dims[0]/2, dims[1]/2, dims[2]/2
+    ));
 
     console.log(boxShape)
 
@@ -599,8 +603,6 @@ world.addBody(groundBody);
         {
             friction: 0.5,
             restitution: 0.3,
-            contactEquationStiffness: 1e7,
-            contactEquationRelaxation: 3
         }
     );
     world.addContactMaterial(contactMaterial);
@@ -624,10 +626,19 @@ world.addBody(groundBody);
         // Add the shape to the body
     domino1_body.addShape(boxShape);
     bodyMap.set("domino1_body", domino1_body);
+
+    groundBody.collisionFilterGroup = 1;
+    groundBody.collisionFilterMask = -1;
+
+    domino1_body.collisionFilterGroup = 1;
+    domino1_body.collisionFilterMask = -1;
+
     
-    setInterval(() => {
+    /*setInterval(() => {
         // Create a box shape (length, width, height)
-    const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
+    //const boxShape = new CANNON.Box(new CANNON.Vec3(...domino1_mesh.getDimensions().map(value => value/2)));
+
+    const boxShape = new CANNON.convexPolyhedron(domino1_data.vertices,domino1_data._faces_by_index)
 
     console.log(boxShape)
 
@@ -639,25 +650,16 @@ world.addBody(groundBody);
     // Add the shape to the body
     domino1_body.addShape(boxShape);
     
-
-    groundBody.collisionFilterGroup = 1;
-    groundBody.collisionFilterMask = -1;
-
-    domino1_body.collisionFilterGroup = 1;
-    domino1_body.collisionFilterMask = -1;
-
-
     bodyMap.set("domino1_body", domino1_body);
 
     // Add the body to the world
     world.addBody(domino1_body);
     // world.addBody(convexBody); //zemin
         dominoCounter++;
-    }, 5000);
+    }, 5000);*/
 
     render();
 }
-
 
 main();
 
