@@ -236,7 +236,6 @@ window.onload = async function init() {
     
 }
 
-
 const render = async function(){
     //mouse hareketlerine bak
     if(drag_flag){
@@ -244,7 +243,7 @@ const render = async function(){
         delta_y = p_y - p_y0;
         p_x0 = p_x;
         p_y0 = p_y;
-        // console.log(delta_x, delta_y);
+        console.log(delta_x, delta_y);
         engine.camera.translateCameraViewplane(delta_x*4, delta_y*4, 0)
     }
     else if(rotate_flag){
@@ -252,9 +251,9 @@ const render = async function(){
         delta_y = p_y - p_y0;
         p_x0 = p_x;
         p_y0 = p_y;
-        // console.log(delta_x, delta_y);
-        let theta = delta_x * Math.PI/2.0;
-        let phi = delta_y * Math.PI/2.0;
+        console.log(delta_x, delta_y);
+        let theta = delta_x * Math.PI/4.0;;
+        let phi = delta_y * Math.PI/4.0;
 
         engine.camera.rotateCamera(theta, phi);
     }
@@ -282,6 +281,8 @@ const render = async function(){
     if(createDomino){
         let lookatPos = engine.camera.getLookAtPosition();
         console.log(lookatPos)
+        console.log("pos ", engine.camera.getCameraPosition())
+        console.log("look ", engine.camera.getLookAtPosition())
         let domino = await dominoCreator( dominoCounter.toString(), "./resources/domino1.obj", "deneme-shader1" ,{x:lookatPos[0],y:1,z:lookatPos[2]+ 10}, 1);
         world.addBody(domino.body);
         let lightGeneric = new Light(Light.AMBIENT, "ambientGeneric");
@@ -349,7 +350,7 @@ const render = async function(){
 }
 
 async function main() {
-    engine.camera.setCameraPosition(0,-1,-20);
+    engine.camera.setCameraPosition(0,1,-25);
     engine.camera.setLookAtPosition(0,0,0);
 
     //TODO: bu shader cok boktan, normaller duzgun calismiyor

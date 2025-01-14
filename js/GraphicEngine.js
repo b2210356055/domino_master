@@ -102,21 +102,67 @@ class Camera{
         this.#lookat_position = [x, y, z];
     }
     
-    rotateCamera(theta, phi){
-        const centered_eye = subtract(this.#camera_position, this.#lookat_position);
-        /*
-            | cos(t),       0,      sin(t)       |
-        M = | sin(t)sin(p), cos(p),-sin(p)cos(t) |
-            |-sin(t)cos(p), sin(p), cos(t)cos(p) |
-        */
-        // rotation matrix * centered eye
-        const rotated_eye_at_center = [
-            dot([Math.cos(theta), 0, Math.sin(theta)], centered_eye),
-            dot([Math.sin(theta)*Math.sin(phi), Math.cos(phi), -Math.sin(phi)*Math.cos(theta)], centered_eye),
-            dot([-Math.sin(theta)*Math.cos(phi), Math.sin(phi), Math.cos(theta)*Math.cos(phi)], centered_eye)
-        ];
-        this.#camera_position = add(rotated_eye_at_center, this.#lookat_position);
+    rotateCamera(theta, phi) {
+        // 1) Compute the current forward direction from camera_position → lookat_position
+        let forward = subtract(this.#lookat_position, this.#camera_position); 
+        // optional: store the current length (distance) so we can preserve how far in front the lookat is
+        const distance = length(forward);
+        forward = normalize(forward);
+        console.log(1)
+    
+        // 2) Compute a right and up vector
+        //     - up = (0, 1, 0) in world space 
+        //       or your current camera’s up if you want more advanced rolling.
+        let right = cross(this.#up, forward);
+        right = normalize(right);
+        console.log(2)
+    
+        // 3) Rotate forward by yaw (theta) around the world up OR the camera’s up 
+        //    - Yaw affects turning left/right.
+        //    - If you want the camera to roll with the up vector, 
+        //      rotate around "this.#up"; if you want absolute world up, use [0,1,0].
+        
+        //    rotation around up axis (yaw)
+        let cosTheta = Math.cos(theta);
+        let sinTheta = Math.sin(theta);
+        // forward' = forward*cos(theta) + right*sin(theta)
+        let forwardAfterYaw = add(
+           scale( cosTheta, forward),
+           scale(sinTheta, right)
+        );
+        forwardAfterYaw = normalize(forwardAfterYaw);
+        console.log(3)
+    
+        // 4) Recompute right now that forward changed
+        right = cross(this.#up, forwardAfterYaw);
+        right = normalize(right);
+        console.log(4)
+    
+        // 5) Rotate forwardAfterYaw by pitch (phi) around the right” axis
+        //    - Pitch affects looking up/down.
+        let cosPhi = Math.cos(phi);
+        let sinPhi = Math.sin(phi);
+    
+        // Decompose forwardAfterYaw into horizontal part” and vertical part”.
+        // Or simply rotate around the right vector.
+        // forward'' = forwardAfterYaw*cos(phi) + (upComponent)*sin(phi)
+        // where upComponent is cross(forwardAfterYaw, right). 
+        // But we can do a standard axis-angle rotation around right axis:
+        let upComp = cross(right, forwardAfterYaw); 
+        let forwardFinal = add(
+           scale(cosPhi, forwardAfterYaw),
+           scale(sinPhi, upComp)
+        );
+        forwardFinal = normalize(forwardFinal);
+        console.log(5)
+        // 6) Multiply forwardFinal by distance to maintain the same lookat distance
+        forwardFinal = scale(distance, forwardFinal);
+        console.log(6)
+        // 7) Update the camera’s lookAt to be camera position + rotated forward
+        this.#lookat_position = add(this.#camera_position, forwardFinal);
+        console.log(7)
     }
+    
 
     getModelViewMatrix() {
         let temp = lookAt(this.#camera_position, this.#lookat_position, this.#up);
@@ -141,6 +187,18 @@ class Camera{
         result.matrix = true;
 
         return new Float32Array(result);
+    }
+
+
+    getViewPoint(distance = 10) {
+        // Get the view direction vector (normalized)
+        let viewDir = subtract(this.#lookat_position, this.#camera_position);
+        viewDir = normalize(viewDir);
+        
+        // Calculate point at specified distance along view direction
+        const viewPoint = add(this.#camera_position, scale(distance, viewDir));
+        
+        return viewPoint;
     }
 }
 
