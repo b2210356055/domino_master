@@ -21,6 +21,9 @@ let spnr;
 let spinner_mesh;
 let cycle=Math.PI/36;
 
+const anim_frame_count = 150;
+let current_anim_frame = 0;
+
 let move_fw = false;
 let move_bw = false;
 let move_rw = false;
@@ -40,6 +43,33 @@ const engine = new Engine();
 const world = new CANNON.World();
 const bodyMap = new Map();
 const meshMap = new Map();
+
+// Add these variables at the top with other global variables
+let currentScore = 1000;
+const DOMINO_COST = 50;  // Cost to place a domino
+const TRIGGER_BONUS = 500;  // Points earned for trigger activation
+
+// Function to update score display
+function updateScoreDisplay(isIncrease = false) {
+    const scoreElement = document.getElementById('currentScore');
+    if (scoreElement) {
+        scoreElement.textContent = currentScore;
+        // Add appropriate animation class
+        scoreElement.className = isIncrease ? 'score-increase' : 'score-change';
+        // Remove animation class after it completes
+        setTimeout(() => {
+            scoreElement.className = '';
+        }, 500);
+    }
+}
+
+// Initialize score display
+function initializeScoreDisplay() {
+    const scoreDiv = document.createElement('div');
+    scoreDiv.innerHTML = document.getElementById('scoreDisplay').outerHTML;
+    document.body.appendChild(scoreDiv.firstChild);
+    updateScoreDisplay();
+}
 
 // Convert quaternion to Euler angles
 function quaternionToEuler(q) {
@@ -159,6 +189,8 @@ world.solver.iterations = 10; // Increase solver iterations for better stability
 world.allowSleep = false; // Keep objects active for better collision detection
 
 window.onload = async function init() {
+
+    window.addEventListener('load', initializeScoreDisplay);
     
     //mouse engine.canvasda hareket ettikce
     engine.canvas.onmousemove = function(event){
@@ -338,6 +370,8 @@ window.onload = async function init() {
         }
     });
 
+    
+
     //sag tik context menuyu kapattik
     engine.canvas.addEventListener('contextmenu', function(event) {
         event.preventDefault();
@@ -362,7 +396,28 @@ window.onload = async function init() {
     
 }
 
+function anim(percentage){
+    let fc = [0.0, 15.0, -10.0];
+    let fl = [0.3, 26.0, 15.5];
+    let lc = [0, 20, -25];
+    let ll = [0, 1, -4];
+    let vc = subtract(lc, fc);
+    let vl = subtract(ll, fl);
+
+    engine.camera.setCameraPosition(...add(fc ,scale(percentage, vc)));
+    engine.camera.setLookAtPosition(...add(fl, scale(percentage, vl)));
+}
+
 const render = async function(){
+
+    if(current_anim_frame !== anim_frame_count){
+        anim(current_anim_frame++/anim_frame_count);
+        engine.drawScene();
+        
+        requestAnimFrame(render);
+        return;
+    }
+
     //mouse hareketlerine bak
     if(drag_flag){
         delta_x = p_x - p_x0;
@@ -448,6 +503,12 @@ const render = async function(){
 
         engine.addMeshToScene(domino.mesh);
         domino.mesh.light_container.addLight(general_ambient);
+        dominoCounter = dominoCounter + 1;
+        world.addBody(domino.body);
+
+        currentScore -= DOMINO_COST;
+        updateScoreDisplay(false);
+
         dominoCounter = dominoCounter + 1;
         world.addBody(domino.body);
         createDomino = false;
@@ -1072,11 +1133,31 @@ async function main() {
     triggerBody.addEventListener("collide", function(event) {
         // Check what object entered the trigger
         const otherBody = event.body;
-        
         console.log("Object entered trigger zone!", otherBody);
-        // Your trigger logic here
+        
+        // Add bonus points for trigger activation
+        currentScore += TRIGGER_BONUS;
+        updateScoreDisplay(true);
         
     });
+
+    let credits_data = await loadOBJ("./resources/credits.obj");
+        
+    let credits_mesh = new Mesh("credits", "default",
+                        credits_data._faces,
+                        credits_data._normals,
+                        credits_data._texture_points,
+                        [{   
+                            mat_name:"sdfsd",
+                            face_index:0,
+                            r:1, g:0, b:1, a:1, wireframe:false
+
+                        }]);
+
+    engine.addMeshToScene(credits_mesh);
+    credits_mesh.setTranslate(0, 20, 0);
+    credits_mesh.scale(-1,1,1);
+    credits_mesh.setRotation(Math.PI/3)
 
 
     let spinner_data = await loadOBJ("./resources/obstacle.obj");

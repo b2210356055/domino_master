@@ -19,6 +19,9 @@ let shadow_domino;
 let initial_domino;
 let hammer_released = false;
 
+const anim_frame_count = 150;
+let current_anim_frame = 0;
+
 let move_fw = false;
 let move_bw = false;
 let move_rw = false;
@@ -393,7 +396,26 @@ window.onload = async function init() {
     
 }
 
+function anim(percentage){
+    let fc = [0.0, 15.0, -10.0];
+    let fl = [0.3, 26.0, 15.5];
+    let lc = [0, 20, -25];
+    let ll = [0, 1, -4];
+    let vc = subtract(lc, fc);
+    let vl = subtract(ll, fl);
+
+    engine.camera.setCameraPosition(...add(fc ,scale(percentage, vc)));
+    engine.camera.setLookAtPosition(...add(fl, scale(percentage, vl)));
+}
 const render = async function(){
+    if(current_anim_frame !== anim_frame_count){
+        anim(current_anim_frame++/anim_frame_count);
+        engine.drawScene();
+        
+        requestAnimFrame(render);
+        return;
+    }
+
     //mouse hareketlerine bak
     if(drag_flag){
         delta_x = p_x - p_x0;
@@ -1102,6 +1124,38 @@ async function main() {
         currentScore += TRIGGER_BONUS;
         updateScoreDisplay(true);
     });
+
+    let credits_data = await loadOBJ("./resources/credits.obj");
+        
+    let credits_mesh = new Mesh("credits", "default",
+                        credits_data._faces,
+                        credits_data._normals,
+                        credits_data._texture_points,
+                        [{   
+                            mat_name:"sdfsd",
+                            face_index:0,
+                            r:1, g:0, b:1, a:1, wireframe:false
+
+                        }]);
+
+    engine.addMeshToScene(credits_mesh);
+    credits_mesh.setTranslate(0, 20, 0);
+    credits_mesh.scale(-1,1,1);
+    credits_mesh.setRotation(Math.PI/3)
+    
+
+    let spinner_data = await loadOBJ("./resources/obstacle.obj");
+        
+    spinner_mesh = new Mesh("spinner1", "deneme-shader1",
+                        spinner_data._faces,
+                        spinner_data._normals,
+                        spinner_data._texture_points,
+                        spinner_data._material_face_map);
+        engine.addMeshToScene(spinner_mesh);
+    // Create a box shape (length, width, height)
+    spinner_mesh.scale(0.75, 0.75, 0.75);
+
+
     // Make sure to add both bodies to your physics world
     world.addBody(gate_body);
     world.addBody(triggerBody);
