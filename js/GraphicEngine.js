@@ -441,6 +441,8 @@ class Mesh {
     light_container;
     VBO_container= {};
 
+    color = [1,1,1,1];
+
     //TODO: add setler this#transform_matrix'i guncelliyor ama
     // rotasyon hatali, bakmak lazim
     /*rotation fixed in app.js*/
@@ -699,7 +701,7 @@ class Mesh {
     }
 
     getDimensions(){
-        return [this.#width, this.#height, this.#length];
+        return [this.#width * this.sx, this.#height * this.sy, this.#length * this.sz];
     }
 
     print(){
@@ -709,6 +711,9 @@ class Mesh {
         console.log(str, "\n#faces: ", this.#faces, "\n#normals: ", this.#normals, "\n#material_list: ", this.#material_facemap);
     }
 
+    updateVBO(new_shader_init){
+        new_shader_init(this.#faces, this.#normals, this.#texture_points, this);
+    }
 
     constructor(_name, _shader_name, _faces, _normals, _texture_points, _material_facemap) {
         this.name = _name;
@@ -740,6 +745,7 @@ class Mesh {
                 if(this.#faces[i+2] < minz) minz = this.#faces[i+2];
                 else if(this.#faces[i+2] > maxz) maxz = this.#faces[i+2];
             }
+            console.log("name: ", this.name, "\nmaxx: ", maxx, ", minx: ", minx, "\nmaxy: ", maxy, ", miny: ", miny, "\nmaxz: ", maxz, ", minz: ", minz);
             this.#width = maxx-minx;
             this.#height = maxy-miny;
             this.#length = maxz-minz;
@@ -802,7 +808,7 @@ class Engine {
         this.canvas.height = window.innerHeight;
         this.gl.viewport( 0, 0, this.canvas.width, this.canvas.height );
 
-        this.gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
+        this.gl.clearColor( 0.882, 0.973, 0.863, 1.0 );
         this.gl.enable(this.gl.DEPTH_TEST);
         // this.gl.enable(this.gl.BLEND);
         // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
@@ -880,6 +886,10 @@ class Engine {
         this.#active_shader_program.shaderInit(mesh.getFaces(), mesh.getNormals(), mesh.getTexturePoints(), mesh);
 
         this.#scene.push(mesh);
+    }
+
+    getScene() {
+        return this.#scene;
     }
 
     getMeshFromScene(meshname){
