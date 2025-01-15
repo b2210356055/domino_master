@@ -17,6 +17,7 @@ let general_ambient = new Light(Light.AMBIENT, "general_ambient_light1");
 general_ambient.setAmbient(1, 1, 1);
 let shadow_domino;
 let initial_domino;
+let hammer_released = false;
 
 let move_fw = false;
 let move_bw = false;
@@ -37,6 +38,34 @@ const engine = new Engine();
 const world = new CANNON.World();
 const bodyMap = new Map();
 const meshMap = new Map();
+
+// Add these variables at the top with other global variables
+let currentScore = 1000;
+const DOMINO_COST = 50;  // Cost to place a domino
+const TRIGGER_BONUS = 500;  // Points earned for trigger activation
+
+// Function to update score display
+function updateScoreDisplay(isIncrease = false) {
+    const scoreElement = document.getElementById('currentScore');
+    if (scoreElement) {
+        scoreElement.textContent = currentScore;
+        // Add appropriate animation class
+        scoreElement.className = isIncrease ? 'score-increase' : 'score-change';
+        // Remove animation class after it completes
+        setTimeout(() => {
+            scoreElement.className = '';
+        }, 500);
+    }
+}
+
+// Initialize score display
+function initializeScoreDisplay() {
+    const scoreDiv = document.createElement('div');
+    scoreDiv.innerHTML = document.getElementById('scoreDisplay').outerHTML;
+    document.body.appendChild(scoreDiv.firstChild);
+    updateScoreDisplay();
+}
+
 
 // Convert quaternion to Euler angles
 function quaternionToEuler(q) {
@@ -82,7 +111,7 @@ async function dominoCreator(dominoName = "1", path = "./resources/domino1.obj",
         mass: mass,  // Mass of the box in kg
         position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
         material: new CANNON.Material({
-            friction: 0.1,
+            friction: 0.5,
             restitution: 0.3 // Bounce factor
         })
     });
@@ -127,7 +156,7 @@ function dominoCreator2(dominoName = "1", shader = "deneme-shader1" , initPoint 
         mass: mass,  // Mass of the box in kg
         position: new CANNON.Vec3(initPoint.x, initPoint.y, initPoint.z), // Starting position in the world
         material: new CANNON.Material({
-            friction: 0.1,
+            friction: 0.5,
             restitution: 0.3 // Bounce factor
         })
     });
@@ -156,6 +185,8 @@ world.solver.iterations = 10; // Increase solver iterations for better stability
 world.allowSleep = false; // Keep objects active for better collision detection
 
 window.onload = async function init() {
+
+    window.addEventListener('load', initializeScoreDisplay);
     
     //mouse engine.canvasda hareket ettikce
     engine.canvas.onmousemove = function(event){
@@ -241,16 +272,14 @@ window.onload = async function init() {
                 break;
             case 'k':
             case 'K':
-                console.log(initial_domino)
-                initial_domino.body.applyImpulse(
-                    new CANNON.Vec3(0, 0, 1.5),
-                    new CANNON.Vec3(initial_domino.body.position.x, initial_domino.body.position.y+1.1, initial_domino.body.position.z)
-                )
-                break;
-
-            case 'c':
-            case 'C':
-                changeLevel();
+                if(!hammer_released){
+                    console.log("hammer: ", hammer_released);
+                    hammer_released = true;
+                    initial_domino.body.applyForce(
+                        new CANNON.Vec3(0, 0, 5),
+                        initial_domino.body.position.clone()
+                    )
+                }
                 break;
     }
     });
@@ -435,7 +464,7 @@ const render = async function(){
             "domino"+dominoCounter.toString(),
             main_shader_names[current_shader_index ],
             {x:intersection[0],y:intersection[1]+1.2,z:intersection[2]},
-            0.1);
+            1);
 
         domino.color = [
             Math.random(),
@@ -451,6 +480,13 @@ const render = async function(){
 
         engine.addMeshToScene(domino.mesh);
         domino.mesh.light_container.addLight(general_ambient);
+        dominoCounter = dominoCounter + 1;
+        world.addBody(domino.body);
+        createDomino = false;
+        // Deduct points for creating domino
+        currentScore -= DOMINO_COST;
+        updateScoreDisplay(false);
+
         dominoCounter = dominoCounter + 1;
         world.addBody(domino.body);
         createDomino = false;
@@ -499,40 +535,6 @@ const render = async function(){
     engine.drawScene();
     requestAnimFrame(render);
 }
-
-function changeLevel() {
-    // Mevcut script etiketini bul
-    const currentScript = document.querySelector('script[src="./js/App3.js"]');
-    if (!currentScript) {
-        console.error('App3.js script etiketi bulunamadi!');
-        return;
-    }
-
-    // Yeni script etiketi oluştur
-    const newScript = document.createElement('script');
-    newScript.src = './js/App2.js';
-    newScript.type = 'text/javascript';
-
-    // Yeni script yüklendiğinde eski scripti kaldır
-    newScript.onload = () => {
-        console.log('App2.js başariyla yüklendi!');
-        try {
-            currentScript.remove(); // Eski scripti DOM'dan kaldır
-            console.log('App3.js DOM\'dan kaldirildi.');
-        } catch (err) {
-            console.error('App3.js kaldirilirken bir hata oluştu:', err);
-        }
-    };
-
-    // Yeni script yüklenirken hata oluşursa
-    newScript.onerror = () => {
-        console.error('App2.js yüklenirken bir hata oluştu!');
-    };
-
-    // Yeni scripti mevcut scriptin yerine ekle
-    currentScript.parentNode.insertBefore(newScript, currentScript);
-}
-
 
 async function main() {
     engine.camera.setCameraPosition(0, 10, -15);
@@ -973,7 +975,7 @@ async function main() {
     world.gravity.set(0, -9.82, 0); // Set gravity (in meters per second squared), e.g., Earth gravity
     world.broadphase = new CANNON.NaiveBroadphase();  // Default broadphase for collision detection
     world.solver = new CANNON.GSSolver;  // Default solver
-    world.allowSleep = false;  // Allow objects to go to sleep when not moving
+    world.allowSleep = true;  // Allow objects to go to sleep when not moving
 
     // Load the ground mesh data for VISUAL representation only
     const zemin_data = await loadOBJ("./resources/ground.obj");
@@ -1093,14 +1095,13 @@ async function main() {
 
     // Add collision event listeners
     triggerBody.addEventListener("collide", function(event) {
-        // Check what object entered the trigger
         const otherBody = event.body;
-        
         console.log("Object entered trigger zone!", otherBody);
-        // Your trigger logic here
         
+        // Add bonus points for trigger activation
+        currentScore += TRIGGER_BONUS;
+        updateScoreDisplay(true);
     });
-
     // Make sure to add both bodies to your physics world
     world.addBody(gate_body);
     world.addBody(triggerBody);
@@ -1115,7 +1116,7 @@ async function main() {
     initial_domino = dominoCreator2(
         "domino"+dominoCounter.toString(),
         main_shader_names[current_shader_index],
-        {x:0, y:1.3, z:-10},
+        {x:0, y:1, z:-10},
         1);
 
     initial_domino.color = [
@@ -1134,6 +1135,9 @@ async function main() {
     initial_domino.mesh.light_container.addLight(general_ambient);
     dominoCounter = dominoCounter + 1;
     world.addBody(initial_domino.body);
+
+    /*console.log(bodyMap)
+    console.log(meshMap)*/
 
     // Add the body to the world
     for (let [key, body] of bodyMap) {

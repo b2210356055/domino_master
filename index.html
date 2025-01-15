@@ -11,122 +11,206 @@
             }
 
             #helpOverlay {
-                display: none;
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background-color: rgba(0, 0, 0, 0.85);
-                color: white;
-                padding: 2rem;
-                border-radius: 10px;
-                font-family: Arial, sans-serif;
-                z-index: 1000;
-                max-width: 600px;
-                width: 80%;
-            }
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
 
-            #helpOverlay h2 {
-                color: #4CAF50;
-                margin-top: 0;
-                text-align: center;
-                padding-bottom: 1rem;
-                border-bottom: 1px solid #4CAF50;
-            }
+        #helpOverlay::-webkit-scrollbar {
+            width: 8px;
+        }
 
-            .control-section {
-                margin: 1rem 0;
-            }
+        #helpOverlay::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
 
-            .control-section h3 {
-                color: #90CAF9;
-                margin-bottom: 0.5rem;
-            }
+        #helpOverlay::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
 
-            .control-item {
-                display: flex;
-                justify-content: space-between;
-                padding: 0.5rem 0;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            }
+        #helpOverlay h2 {
+            color: #4CAF50;
+            margin-top: 0;
+            text-align: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #4CAF50;
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.85);
+            margin-bottom: 0.5rem;
+        }
 
-            .key {
-                background-color: rgba(255, 255, 255, 0.1);
-                padding: 0.25rem 0.5rem;
-                border-radius: 4px;
-                font-family: monospace;
-            }
+        .control-section {
+            margin: 0.5rem 0;
+        }
 
-            .description {
-                flex-grow: 1;
-                margin-left: 1rem;
-            }
-            
-        </style>
+        .control-section h3 {
+            color: #90CAF9;
+            margin: 0.5rem 0;
+            font-size: 0.9em;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85em;
+        }
+
+        .key {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.15rem 0.3rem;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: nowrap;
+            margin-right: 0.5rem;
+        }
+
+        .description {
+            flex-grow: 1;
+            text-align: right;
+        }
+
+        #scoreDisplay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .score-change {
+            animation: scoreChange 0.5s ease-out;
+        }
+
+        @keyframes scoreChange {
+            0% { transform: scale(1); color: white; }
+            50% { transform: scale(1.2); color: #ff4444; }
+            100% { transform: scale(1); color: white; }
+        }
+
+        .score-increase {
+            animation: scoreIncrease 0.5s ease-out;
+        }
+
+        @keyframes scoreIncrease {
+            0% { transform: scale(1); color: white; }
+            50% { transform: scale(1.2); color: #44ff44; }
+            100% { transform: scale(1); color: white; }
+        }
+    </style>
+</head>
+<body>
+    <div id="scoreDisplay">
+        Score: <span id="currentScore">1000</span>
+    </div>
+    <div id="helpOverlay">
+        <h2>HELP</h2>
         
-        <title>WebGL2 ENGINE DENEMELERI</title>
-    </head>
-
-    <body>
-        <div id="helpOverlay">
-            <h2>HElP</h2>
-            
-            <div class="control-section">
-                <h3>Movement Controls</h3>
-                <div class="control-item">
-                    <span class="key">W</span>
-                    <span class="description">Move Forward</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">S</span>
-                    <span class="description">Move Backward</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">A</span>
-                    <span class="description">Move Left</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">D</span>
-                    <span class="description">Move Right</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">E</span>
-                    <span class="description">Move Up</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">Q</span>
-                    <span class="description">Move Down</span>
-                </div>
+        <div class="control-section">
+            <h3>Movement Controls</h3>
+            <div class="control-item">
+                <span class="key">W</span>
+                <span class="description">Move Forward</span>
             </div>
-    
-            <div class="control-section">
-                <h3>Camera Controls</h3>
-                <div class="control-item">
-                    <span class="key">Left Click + Drag</span>
-                    <span class="description">Rotate Camera</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">Right Click + Drag</span>
-                    <span class="description">Pan Camera</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">Mouse Wheel</span>
-                    <span class="description">Zoom In/Out</span>
-                </div>
+            <div class="control-item">
+                <span class="key">S</span>
+                <span class="description">Move Backward</span>
             </div>
-    
-            <div class="control-section">
-                <h3>Other Controls</h3>
-                <div class="control-item">
-                    <span class="key">Z</span>
-                    <span class="description">Create Domino</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">H</span>
-                    <span class="description">Toggle Help Menu</span>
-                </div>
+            <div class="control-item">
+                <span class="key">A</span>
+                <span class="description">Move Left</span>
+            </div>
+            <div class="control-item">
+                <span class="key">D</span>
+                <span class="description">Move Right</span>
+            </div>
+            <div class="control-item">
+                <span class="key">E</span>
+                <span class="description">Move Up</span>
+            </div>
+            <div class="control-item">
+                <span class="key">Q</span>
+                <span class="description">Move Down</span>
             </div>
         </div>
+
+        <div class="control-section">
+            <h3>Camera Controls</h3>
+            <div class="control-item">
+                <span class="key">Left Click</span>
+                <span class="description">Rotate Camera</span>
+            </div>
+            <div class="control-item">
+                <span class="key">Right Click</span>
+                <span class="description">Pan Camera</span>
+            </div>
+            <div class="control-item">
+                <span class="key">Scroll</span>
+                <span class="description">Zoom In/Out</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Domino Controls</h3>
+            <div class="control-item">
+                <span class="key">Z</span>
+                <span class="description">Create Domino (-50pts)</span>
+            </div>
+            <div class="control-item">
+                <span class="key">R</span>
+                <span class="description">Rotate Right</span>
+            </div>
+            <div class="control-item">
+                <span class="key">T</span>
+                <span class="description">Rotate Left</span>
+            </div>
+            <div class="control-item">
+                <span class="key">K</span>
+                <span class="description">Release Initial</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Other Controls</h3>
+            <div class="control-item">
+                <span class="key">H</span>
+                <span class="description">Toggle Help</span>
+            </div>
+            <div class="control-item">
+                <span class="key">P</span>
+                <span class="description">Change Shader</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>Scoring</h3>
+            <div class="control-item">
+                <span class="key">Gate</span>
+                <span class="description">+500 Points</span>
+            </div>
+        </div>
+    </div>
 
         <canvas id="gl-canvas" width="1920" height="1080">
             Oops ... your browser doesn't support the HTML5 canvas element
@@ -147,7 +231,7 @@
     <script type="text/javascript" src="./js/OBJParser.js"></script>
     <script type="text/javascript" src="./js/sphere.js"></script>
     <script type="text/javascript" src="./js/GraphicEngine.js"></script>
-    <script type="module" src="./js/App2.js"></script>
+    <script type="module" src="./js/App3.js"></script>
 
     <script>
         document.body.appendChild(document.getElementById('helpOverlay'));
